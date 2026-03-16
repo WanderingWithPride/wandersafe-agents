@@ -128,6 +128,25 @@ Community-submitted reports are anonymized before publication. No personal ident
 
 ---
 
+## Live Destinations (Beta)
+
+Ten destination pages are now live, each powered by this pipeline and updated as conditions change:
+
+| Destination | URL | Notes |
+|---|---|---|
+| Madrid, Spain | [wanderingwithpride.com/wandersafe-madrid.html](https://wanderingwithpride.com/wandersafe-madrid.html) | LGBTQ+ hub, home of Madrid Bear Week (Osos) |
+| Barcelona, Spain | [wanderingwithpride.com/wandersafe-barcelona.html](https://wanderingwithpride.com/wandersafe-barcelona.html) | Pride capital with one of Europe's largest Pride festivals |
+| Puerto Vallarta, Mexico | [wanderingwithpride.com/wandersafe-puerto-vallarta.html](https://wanderingwithpride.com/wandersafe-puerto-vallarta.html) | Mexico's most established LGBTQ+ resort destination |
+| Krakow, Poland | [wanderingwithpride.com/wandersafe-krakow.html](https://wanderingwithpride.com/wandersafe-krakow.html) | Central European destination with evolving legal context |
+| Rwanda, East Africa | [wanderingwithpride.com/wandersafe-rwanda.html](https://wanderingwithpride.com/wandersafe-rwanda.html) | High-demand destination with complex safety picture for LGBTQ+ travelers |
+| Rome, Italy | [wanderingwithpride.com/wandersafe-rome.html](https://wanderingwithpride.com/wandersafe-rome.html) | Major European destination with conservative political undercurrents |
+| Berlin, Germany | [wanderingwithpride.com/wandersafe-berlin.html](https://wanderingwithpride.com/wandersafe-berlin.html) | LGBTQ+ capital of Europe with globally recognized queer infrastructure |
+| Amsterdam, Netherlands | [wanderingwithpride.com/wandersafe-amsterdam.html](https://wanderingwithpride.com/wandersafe-amsterdam.html) | First country to legalize same-sex marriage, strong legal protections |
+| Bangkok, Thailand | [wanderingwithpride.com/wandersafe-bangkok.html](https://wanderingwithpride.com/wandersafe-bangkok.html) | Visible LGBTQ+ scene with legal protections lagging social acceptance |
+| Buenos Aires, Argentina | [wanderingwithpride.com/wandersafe-buenos-aires.html](https://wanderingwithpride.com/wandersafe-buenos-aires.html) | Pride capital of South America with comprehensive legal protections |
+
+---
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
