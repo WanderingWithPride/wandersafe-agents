@@ -1,91 +1,58 @@
-# Contributing to WanderSafe Agents
+# Contributing to WanderSafe
 
-Thank you for your interest in contributing to the WanderSafe open-source safety intelligence platform for LGBTQ+ travelers. Every contribution — whether a community safety report, a destination request, or a data correction — directly improves the safety resources available to LGBTQ+ travelers worldwide.
+Thank you for helping make LGBTQ+ travel safer. WanderSafe is a community-informed platform — your knowledge of destinations, local organizations, and on-the-ground realities makes the data better.
 
-## Table of Contents
+## Ways to Contribute
 
-- [How to Submit a Community Safety Report](#how-to-submit-a-community-safety-report)
-- [How to Propose a New Destination](#how-to-propose-a-new-destination)
-- [How to Flag Incorrect Data](#how-to-flag-incorrect-data)
-- [How the Methodology Was Built](#how-the-methodology-was-built)
-- [Code of Conduct](#code-of-conduct)
-- [Contact](#contact)
+### 1. Submit a Community Safety Report
 
----
+Community safety reports are the core of what makes WanderSafe useful. If you have firsthand experience with a destination — positive or negative — please share it.
 
-## How to Submit a Community Safety Report
+**Submit via our Tally form: https://tally.so/r/BzBaLR**
 
-Community reports are the human layer of WanderSafe. If you have traveled to a destination and have safety observations, experiences, or ground-truth corrections, we want to hear from you.
+Please do not submit safety reports as GitHub issues. The Tally form routes reports through a moderation workflow and stores them securely. Reports go through human review before publication.
 
-**Submit via our community form:** [https://tally.so/r/BzBaLR](https://tally.so/r/BzBaLR)
+### 2. Propose a New Destination Page
 
-Please do NOT submit safety reports as GitHub issues — the Tally form is moderated, structured, and routes reports through the appropriate review workflow before any data is published. This protects both reporters and the integrity of the data.
+WanderSafe currently covers 20 destinations. If you'd like to see a destination added, open a GitHub issue using the **Destination Request** template.
 
-What makes a strong community report:
-- Specific location and timeframe (city, month/year)
-- Observable conditions, not rumors (what you personally witnessed or experienced)
-- Neutral language — the platform is informational, not editorial
-- Optional: photos (submitted through the form, reviewed before use)
+Good destination requests include:
+- Why this destination is significant for LGBTQ+ travelers
+- Whether local organizations or resources exist there
+- What data sources are available (Equaldex, ILGA, local NGOs)
 
-All reports are reviewed by the WanderSafe team before influencing destination scores or safety assessments.
+[Open a Destination Request issue](../../issues/new?template=destination-request.md)
 
----
+### 3. Flag Incorrect Data
 
-## How to Propose a New Destination
+Safety data changes. Laws change. Enforcement realities change. If something on a destination page is outdated or wrong, please flag it immediately.
 
-WanderSafe currently covers 20 destinations. If you want to see a destination added, open a GitHub issue using the structured template:
+[Open a Data Correction issue](../../issues/new?template=data-correction.md)
 
-[Open a Destination Request](https://github.com/WanderingWithPride/wandersafe-agents/issues/new?template=destination-request.md)
+Include a citation or source for what the correct information should be. We'll review and update within 48 hours for anything affecting traveler safety.
 
-A strong destination request includes:
-- Why the destination matters to LGBTQ+ travelers (volume, unique risk profile, underserved community)
-- Any existing legal/rights data you can point to (Equaldex, ILGA reports, news)
-- Whether you have personal travel experience there
+## Our Methodology
 
-Destinations are prioritized based on traveler demand, data availability, and alignment with the WanderSafe mission. We cannot guarantee a timeline, but all requests are reviewed.
+WanderSafe combines automated data layers (Equaldex legal status API, ILGA reports, Spartacus Index) with human editorial review and community reports. AI agents monitor for legal changes and news events; all significant updates are reviewed by a human before publication.
 
----
+Full methodology: https://wanderingwithpride.com/wandersafe-methodology.html
 
-## How to Flag Incorrect Data
+## Code Contributions
 
-WanderSafe monitors legal status, safety conditions, and infrastructure data using automated agents — but automated data can be wrong or outdated. If you spot an error, please report it.
+This repo is a Cloudflare Workers application. If you're a developer and want to contribute:
 
-[Open a Data Correction](https://github.com/WanderingWithPride/wandersafe-agents/issues/new?template=data-correction.md)
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Make your changes with clear commit messages
+4. Open a pull request with a description of what changed and why
 
-Data correction issues should include:
-- The destination and specific data point that is incorrect
-- What the correct information is, with a source if possible (government source, ILGA, Equaldex, credible news)
-- Date the correct information took effect, if applicable
-
-Data corrections are reviewed within 7 days and published in the next monitoring cycle.
-
----
-
-## How the Methodology Was Built
-
-WanderSafe's safety assessments combine multiple data layers:
-
-1. **Legal status data** — sourced from [Equaldex](https://equaldex.com) API and ILGA World reports, covering criminalization, marriage equality, anti-discrimination protections, and gender recognition laws
-2. **AI monitoring agents** — four agent types (Legal, News, Event, Photo Content) run on Cloudflare Workers, continuously watching for legislative changes, news events, and safety incidents
-3. **Community reports** — moderated submissions from LGBTQ+ travelers with firsthand experience
-4. **Personal assessment layer** — destinations where the WanderSafe author has traveled personally include an additional layer of verified ground-truth observation
-
-Full methodology documentation: [wanderingwithpride.com/wandersafe-methodology.html](https://wanderingwithpride.com/wandersafe-methodology.html)
-
-**Important:** The personal assessment layer is not AI-generatable. Only destinations with verified firsthand travel experience receive this designation. Do not propose or contribute fabricated personal assessments.
-
----
-
-## Code of Conduct
-
-This project follows the [Contributor Covenant Code of Conduct, version 2.1](CODE_OF_CONDUCT.md). By participating, you agree to uphold this standard. Violations can be reported to michael.eisinger@wanderingwithpride.com.
-
----
+All contributors must follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Contact
 
-Project maintainer: Michael Eisinger
-Email: michael.eisinger@wanderingwithpride.com
-Organization: [Wandering With Pride](https://wanderingwithpride.org)
+Questions about contributing or the data?
 
-For security disclosures, please email directly rather than opening a public issue.
+**Michael Eisinger**
+michael.eisinger@wanderingwithpride.com
+
+For press or partnership inquiries, please use the same address.
