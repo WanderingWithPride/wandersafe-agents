@@ -173,3 +173,161 @@ CREATE TABLE IF NOT EXISTS agent_runs (
 
 CREATE INDEX IF NOT EXISTS idx_runs_agent ON agent_runs(agent_type);
 CREATE INDEX IF NOT EXISTS idx_runs_status ON agent_runs(status);
+
+-- ============================================================
+-- destination_scores
+-- Computed safety scores from the scoring pipeline.
+-- Updated by scoring Worker whenever an alert is approved.
+-- This is what destination pages actually display.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS destination_scores (
+  id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+  destination_id       TEXT NOT NULL REFERENCES destinations(id) ON DELETE CASCADE,
+  score                REAL NOT NULL,           -- 0–100 numeric score
+  tier                 INTEGER NOT NULL          -- 1=safe, 2=caution, 3=high_risk, 4=do_not_travel
+    CHECK (tier BETWEEN 1 AND 4),
+  tier_label           TEXT NOT NULL,            -- 'Safe', 'Exercise Caution', 'High Risk', 'Do Not Travel'
+  confidence           TEXT NOT NULL DEFAULT 'medium'
+    CHECK (confidence IN ('high', 'medium', 'low', 'insufficient')),
+  state_erasure_score  REAL,                     -- sub-score: state criminalization axis
+  digital_exploit_score REAL,                    -- sub-score: digital exploitation axis
+  vigilante_score      REAL,                     -- sub-score: vigilante enforcement axis
+  community_delta      REAL DEFAULT 0,           -- community report adjustment (-15 to +15)
+  scoring_version      TEXT NOT NULL DEFAULT '1.0',
+  scored_at            TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_scores_destination ON destination_scores(destination_id);
+
+-- ============================================================
+-- legiscan_bills
+-- US state + federal LGBTQ+-relevant legislation.
+-- Populated by legiscan-monitor Worker.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS legiscan_bills (
+  id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+  legiscan_bill_id        INTEGER NOT NULL UNIQUE,
+  state                   TEXT NOT NULL,          -- 2-letter state code or 'US' for federal
+  bill_number             TEXT NOT NULL,          -- e.g., 'HB 1234'
+  title                   TEXT NOT NULL,
+  description             TEXT,
+  status                  TEXT NOT NULL,          -- 'introduced', 'committee', 'passed', 'enacted', 'failed', 'vetoed'
+  introduced_date         TEXT,
+  last_action             TEXT,
+  last_action_date        TEXT,
+  lgbtq_relevance_score   REAL NOT NULL,          -- 0.0–1.0 from Claude Haiku classifier
+  lgbtq_relevance_summary TEXT,                   -- classifier's explanation
+  threat_type             TEXT,                   -- 'criminalization', 'trans_healthcare', 'anti_drag',
+                                                  -- 'gender_recognition', 'hiv_criminalization',
+                                                  -- 'public_accommodation', 'education', 'other'
+  affected_destinations   TEXT,                   -- JSON array of destination_ids affected
+  legiscan_change_hash    TEXT,                   -- for delta detection (only re-fetch on hash change)
+  bill_url                TEXT,
+  created_at              TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at              TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_bills_state ON legiscan_bills(state);
+CREATE INDEX IF NOT EXISTS idx_bills_status ON legiscan_bills(status);
+CREATE INDEX IF NOT EXISTS idx_bills_relevance ON legiscan_bills(lgbtq_relevance_score);
+CREATE INDEX IF NOT EXISTS idx_bills_threat ON legiscan_bills(threat_type);
+
+-- ============================================================
+-- scholar_reports
+-- Post-trip safety reports from WWP scholars.
+-- Separate from community_reports to allow Scholar badge
+-- and to track which scholarship cohort each report belongs to.
+-- Feeds into community_reports display layer after approval.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS scholar_reports (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  destination_id    TEXT NOT NULL REFERENCES destinations(id) ON DELETE CASCADE,
+  scholar_cohort    TEXT NOT NULL,               -- e.g., '2024', '2025-spring'
+  visit_date        TEXT,                        -- YYYY-MM of actual travel
+  legal_assessment  TEXT,                        -- scholar's on-the-ground legal observation
+  social_assessment TEXT,                        -- social atmosphere assessment
+  safety_rating     INTEGER                      -- 1–5 self-reported
+    CHECK (safety_rating BETWEEN 1 AND 5),
+  incident_detail   TEXT,                        -- any incident or observation
+  neighborhood      TEXT,
+  tips              TEXT,                        -- practical advice for future travelers
+  would_return      TEXT
+    CHECK (would_return IN ('yes', 'yes_with_caution', 'no', 'unsure')),
+  credit_preference TEXT NOT NULL DEFAULT 'scholar_anonymous'
+    CHECK (credit_preference IN (
+      'full_name', 'first_name_city', 'handle', 'scholar_anonymous'
+    )),
+  display_name      TEXT,                        -- populated if credit_preference != scholar_anonymous
+  approved          INTEGER NOT NULL DEFAULT 0
+    CHECK (approved IN (0, 1)),
+  published_at      TEXT,
+  community_report_id INTEGER REFERENCES community_reports(id), -- link when published to main feed
+  created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_scholar_reports_destination ON scholar_reports(destination_id);
+CREATE INDEX IF NOT EXISTS idx_scholar_reports_cohort ON scholar_reports(scholar_cohort);
+
+-- ============================================================
+-- access_grants
+-- CiviCRM-driven access mapping.
+-- Managed by civicrm-sync Worker.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS access_grants (
+  id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+  civicrm_contact_id   TEXT NOT NULL,
+  buttondown_id        TEXT,                     -- Buttondown subscriber ID
+  tier                 TEXT NOT NULL
+    CHECK (tier IN ('scholar', 'alumni', 'board', 'advisor', 'donor', 'ambassador', 'partner')),
+  destination_tags     TEXT,                     -- JSON array: specific destination tags applied
+  granted_at           TEXT NOT NULL DEFAULT (datetime('now')),
+  expires_at           TEXT,                     -- NULL = permanent (alumni, board)
+  revoked_at           TEXT,
+  notes                TEXT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_access_civicrm ON access_grants(civicrm_contact_id);
+CREATE INDEX IF NOT EXISTS idx_access_tier ON access_grants(tier);
+
+-- ============================================================
+-- b2b_clients  [POST-FUNDING]
+-- API key → client mapping for B2B tier.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS b2b_clients (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_name     TEXT NOT NULL,
+  api_key_hash    TEXT NOT NULL UNIQUE,          -- SHA-256 of API key (key itself never stored)
+  tier            TEXT NOT NULL DEFAULT 'basic'
+    CHECK (tier IN ('basic', 'standard', 'enterprise')),
+  rate_limit      INTEGER NOT NULL DEFAULT 1000, -- requests per day
+  allowed_fields  TEXT,                          -- JSON array of fields they can access
+  contract_start  TEXT,
+  contract_end    TEXT,
+  monthly_fee_usd REAL,
+  notes           TEXT,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  last_active     TEXT
+);
+
+-- ============================================================
+-- circles_contacts  [POST-FUNDING]
+-- In-country contact directory for Circles feature.
+-- Private keys never stored here — only public keys.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS circles_contacts (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  subscriber_id     INTEGER NOT NULL REFERENCES subscribers(id) ON DELETE CASCADE,
+  destination_id    TEXT NOT NULL REFERENCES destinations(id) ON DELETE CASCADE,
+  availability      TEXT NOT NULL
+    CHECK (availability IN ('emergency_only', 'open_to_connect')),
+  public_key        TEXT NOT NULL,               -- E2E encryption public key
+  bio               TEXT,                        -- 2-3 sentence optional bio
+  languages         TEXT,                        -- JSON array
+  verified_at       TEXT,                        -- when WanderSafe verified identity
+  active            INTEGER NOT NULL DEFAULT 1
+    CHECK (active IN (0, 1)),
+  created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_circles_destination ON circles_contacts(destination_id);
+CREATE INDEX IF NOT EXISTS idx_circles_availability ON circles_contacts(availability);
