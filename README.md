@@ -1,6 +1,6 @@
 # WanderSafe Agents
 
-**WanderSafe** is an LGBTQ+ real-time travel safety intelligence platform built by [Wandering With Pride](https://wanderingwithpride.com). It synthesizes legal data, government advisories, news monitoring, community reports, and social signals into structured, human-reviewed safety intelligence for every destination.
+**WanderSafe** is an LGBTQ+ travel safety intelligence platform built by [Wandering With Pride](https://wanderingwithpride.com). It synthesizes legal data, government advisories, news monitoring, community reports, and social signals into structured, human-reviewed safety intelligence for every destination.
 
 This repository contains the open-source monitoring agent pipeline that powers WanderSafe.
 
@@ -21,13 +21,13 @@ This repo is MIT licensed. The data schema and agent interfaces are documented s
 
 WanderSafe runs five specialized monitoring agents, each responsible for a distinct data layer:
 
-| Agent | File | Data Sources |
-|---|---|---|
-| Legal Monitor | `agents/legal-monitor.js` | Equaldex API, State Dept RSS, LegiScan |
-| News Monitor | `agents/news-monitor.js` | PinkNews, LGBTQ Nation, HRW, The Advocate RSS |
-| Event Monitor | `agents/event-monitor.js` | Pride organization sites, IGLTA, local event feeds |
-| Community Validator | `agents/community-validator.js` | Traveler-submitted reports (Tally form → Sheets) |
-| Social Intelligence | `agents/social-intelligence.js` | Reddit r/gaytravellers, Instagram public posts, Facebook public venue pages |
+| Agent | File | Data Sources | Schedule |
+|---|---|---|---|
+| Legal Monitor | `agents/legal-monitor.js` | Equaldex API, U.S. State Dept RSS, LegiScan | Every 6 hours |
+| News Monitor | `agents/news-monitor.js` | PinkNews, LGBTQ Nation, HRW, The Advocate RSS | Every 2 hours |
+| Event Monitor | `agents/event-monitor.js` | Pride organization sites, IGLTA, local event feeds | Daily |
+| Community Validator | `agents/community-validator.js` | Traveler-submitted reports (Tally webhook → D1) | On webhook receipt |
+| Social Intelligence | `agents/social-intelligence.js` | Reddit r/gaytravellers, r/LGBTtravel, r/lgbt; public social posts | Every hour |
 
 All agents output structured alerts. **Nothing publishes without human review and approval.**
 
@@ -59,9 +59,11 @@ To run this pipeline for your own community:
 
 1. **Cloudflare Workers account** — free tier is sufficient for small-scale monitoring
 2. **Cloudflare D1 database** — serverless SQLite, included in Workers free tier
-3. **Equaldex API key** — free at [equaldex.com/api](https://www.equaldex.com/api) — provides legal status data for 200+ countries
-4. **Optional**: RSS feed access to PinkNews, HRW, LGBTQ Nation (all public, no keys required)
-5. **Optional**: Reddit API credentials for social monitoring (free tier)
+3. **Equaldex API key** — free at [equaldex.com/api](https://www.equaldex.com/api) — legal status data for 200+ countries
+4. **Anthropic API key** — for Claude-powered community report classification (pay-per-use, ~$5/month at low volume)
+5. **Tally.so account** — community report intake form (free tier available); configure the webhook to point at your community-validator Worker
+6. **Optional**: Reddit API credentials for social monitoring (free tier)
+7. **Optional**: RSS feed access to PinkNews, HRW, LGBTQ Nation (all public, no API key required)
 
 ---
 
@@ -72,19 +74,26 @@ To run this pipeline for your own community:
 git clone https://github.com/WanderingWithPride/wandersafe-agents.git
 cd wandersafe-agents
 
-# Install dependencies (each agent is a Cloudflare Worker)
+# Install dependencies
 npm install
+
+# Run the test suite to verify everything works
+npm test
 
 # Set up your D1 database
 wrangler d1 create wandersafe
 wrangler d1 execute wandersafe --file=schema/d1-schema.sql
 
-# Set environment variables (never commit these)
-cp .env.example .env
-# Edit .env with your Equaldex API key and other credentials
+# Set environment variables in Cloudflare Workers dashboard (never commit these):
+#   EQUALDEX_API_KEY       — from equaldex.com/api
+#   ANTHROPIC_API_KEY      — from console.anthropic.com
+#   TALLY_WEBHOOK_SECRET   — from your Tally form webhook settings
+#   ADMIN_PASSWORD         — password for the /admin/queue review interface
+#   LEGISCAN_API_KEY       — from legiscan.com (US bill tracking)
 
-# Deploy agents as Workers
+# Deploy agents as Cloudflare Workers
 wrangler deploy agents/legal-monitor.js
+wrangler deploy agents/community-validator.js
 wrangler deploy agents/news-monitor.js
 # ... etc
 ```

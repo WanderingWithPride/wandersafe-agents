@@ -1,0 +1,16 @@
+{
+  "name": "wandersafe-agents",
+  "version": "1.0.0",
+  "description": "WanderSafe LGBTQ+ travel safety monitoring agents",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

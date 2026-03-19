@@ -1,6 +1,6 @@
 -- WanderSafe D1 Database Schema
 -- Cloudflare D1 (SQLite-compatible)
--- Version: 1.0.0
+-- Version: 1.1.0
 --
 -- This schema supports the WanderSafe LGBTQ+ travel safety intelligence platform.
 -- All alert records start with human_reviewed = 0 (false). Nothing is surfaced
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS safety_alerts (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   destination_id  TEXT NOT NULL REFERENCES destinations(id) ON DELETE CASCADE,
   severity        TEXT NOT NULL
-    CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+    CHECK (severity IN ('informational', 'low', 'medium', 'high', 'critical')),
   agent_type      TEXT NOT NULL
     CHECK (agent_type IN ('legal', 'news', 'event', 'community', 'social')),
   source_url      TEXT,                     -- canonical URL of the triggering source
@@ -92,19 +92,28 @@ CREATE INDEX IF NOT EXISTS idx_alerts_agent ON safety_alerts(agent_type);
 
 -- ============================================================
 -- community_reports
--- Submitted by travelers via Tally form.
--- Processed by community-validator agent.
--- approved = 0 until human reviewer signs off.
--- PII is stripped before insert — submitter contact info
--- is used only for follow-up on critical reports and is
--- never stored here.
+-- Submitted by travelers via Tally form → webhook → D1.
+-- No Google Sheets. Tally sends a signed webhook POST to the
+-- community-validator Worker, which validates the HMAC,
+-- classifies with Claude, strips PII, and inserts here.
+-- human_reviewed = 0 and approved = 0 until reviewer signs off.
+-- published_at is set by reviewer on approval.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS community_reports (
-  id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  destination_id  TEXT NOT NULL REFERENCES destinations(id) ON DELETE CASCADE,
-  visit_date      TEXT,                     -- approximate date of travel (YYYY-MM or YYYY-MM-DD)
-  audience_tags   TEXT,                     -- JSON array: ['gay_men','trans','solo_traveler', ...]
-  incident_type   TEXT NOT NULL
+  id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+  -- Destination fields: destination_id is nullable until a human reviewer
+  -- resolves the free-text destination to a canonical destination record
+  destination_id        TEXT REFERENCES destinations(id) ON DELETE SET NULL,
+  destination_raw       TEXT,                     -- free-text destination from Tally form
+  destination_normalized TEXT,                    -- AI-resolved: "City, Country"
+  country_code          TEXT,                     -- ISO 3166-1 alpha-2 (AI-resolved)
+  -- Report metadata
+  tally_response_id     TEXT UNIQUE,              -- Tally responseId for idempotency
+  submitted_at          TEXT,                     -- ISO 8601 from Tally payload
+  visit_date            TEXT,                     -- traveler-reported travel date (YYYY-MM or YYYY-MM-DD)
+  -- Classification (by community-validator agent via Claude)
+  audience_tags         TEXT,                     -- JSON array: ['gay_men','trans','solo_traveler', ...]
+  incident_type         TEXT
     CHECK (incident_type IN (
       'none',
       'verbal_harassment',
@@ -116,15 +125,21 @@ CREATE TABLE IF NOT EXISTS community_reports (
       'positive_experience',
       'other'
     )),
-  incident_detail TEXT,                     -- free-text description (anonymized)
-  neighborhood    TEXT,                     -- general area within city (never specific address)
-  validity_score  REAL,                     -- 0.0–1.0 assigned by community-validator agent
-  validity_notes  TEXT,                     -- agent's reasoning for validity score
-  approved        INTEGER NOT NULL DEFAULT 0
+  severity              TEXT
+    CHECK (severity IN ('informational', 'low', 'medium', 'high', 'critical')),
+  validity_score        REAL,                     -- 0.0–1.0 assigned by agent
+  summary               TEXT,                     -- agent-generated plain-language summary (no PII)
+  description_sanitized TEXT,                     -- PII-stripped free-text description from form
+  neighborhood          TEXT,                     -- general area within city (never specific address)
+  classifier_error      TEXT,                     -- if Claude classification failed, error message
+  -- Review workflow
+  human_reviewed        INTEGER NOT NULL DEFAULT 0
+    CHECK (human_reviewed IN (0, 1)),             -- 1 once reviewer acts (approve OR reject)
+  approved              INTEGER NOT NULL DEFAULT 0
     CHECK (approved IN (0, 1)),
-  reviewer_notes  TEXT,                     -- internal notes from human reviewer
-  published_at    TEXT,                     -- null until approved
-  created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  reviewer_notes        TEXT,                     -- internal notes from human reviewer
+  published_at          TEXT,                     -- null until approved; ISO 8601 when published
+  created_at            TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_reports_destination ON community_reports(destination_id);
