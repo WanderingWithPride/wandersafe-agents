@@ -137,7 +137,7 @@ Community-submitted reports are anonymized before publication. No personal ident
 
 ---
 
-## Live Destinations (Beta)
+## Live Destinations
 
 Ten destination pages are now live, each powered by this pipeline and updated as conditions change:
 
@@ -149,10 +149,10 @@ Ten destination pages are now live, each powered by this pipeline and updated as
 | Krakow, Poland | [wanderingwithpride.com/wandersafe-krakow.html](https://wanderingwithpride.com/wandersafe-krakow.html) | Central European destination with evolving legal context |
 | Rwanda, East Africa | [wanderingwithpride.com/wandersafe-rwanda.html](https://wanderingwithpride.com/wandersafe-rwanda.html) | High-demand destination with complex safety picture for LGBTQ+ travelers |
 | Rome, Italy | [wanderingwithpride.com/wandersafe-rome.html](https://wanderingwithpride.com/wandersafe-rome.html) | Major European destination with conservative political undercurrents |
-| Berlin, Germany | [wanderingwithpride.com/wandersafe-berlin.html](https://wanderingwithpride.com/wandersafe-berlin.html) | LGBTQ+ capital of Europe with globally recognized queer infrastructure |
-| Amsterdam, Netherlands | [wanderingwithpride.com/wandersafe-amsterdam.html](https://wanderingwithpride.com/wandersafe-amsterdam.html) | First country to legalize same-sex marriage, strong legal protections |
-| Bangkok, Thailand | [wanderingwithpride.com/wandersafe-bangkok.html](https://wanderingwithpride.com/wandersafe-bangkok.html) | Visible LGBTQ+ scene with legal protections lagging social acceptance |
-| Buenos Aires, Argentina | [wanderingwithpride.com/wandersafe-buenos-aires.html](https://wanderingwithpride.com/wandersafe-buenos-aires.html) | Pride capital of South America with comprehensive legal protections |
+| Berlin, Germany | [wanderingwithpride.com/wandersafe/berlin-germany.html](https://wanderingwithpride.com/wandersafe/berlin-germany.html) | LGBTQ+ capital of Europe with globally recognized queer infrastructure |
+| Amsterdam, Netherlands | [wanderingwithpride.com/wandersafe/amsterdam-netherlands.html](https://wanderingwithpride.com/wandersafe/amsterdam-netherlands.html) | First country to legalize same-sex marriage, strong legal protections |
+| Bangkok, Thailand | [wanderingwithpride.com/wandersafe/bangkok-thailand.html](https://wanderingwithpride.com/wandersafe/bangkok-thailand.html) | Visible LGBTQ+ scene with legal protections lagging social acceptance |
+| Buenos Aires, Argentina | [wanderingwithpride.com/wandersafe/buenos-aires-argentina.html](https://wanderingwithpride.com/wandersafe/buenos-aires-argentina.html) | Pride capital of South America with comprehensive legal protections |
 
 ---
 
