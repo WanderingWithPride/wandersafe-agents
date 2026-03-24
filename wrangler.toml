@@ -1,0 +1,54 @@
+name = "wandersafe-agents"
+main = "agents/social-intelligence.js"
+compatibility_date = "2024-01-01"
+
+# Cloudflare D1 Database Binding
+# Prerequisites: wrangler d1 create wandersafe
+[[d1_databases]]
+binding = "DB"
+database_name = "wandersafe"
+database_id = "7f18bc1f-8226-4d80-9d0d-be58b5d56ef4"
+
+# Environment Variables (non-secret)
+[vars]
+ENVIRONMENT = "production"
+ALERT_RETENTION_DAYS = "90"
+
+# Secrets configuration:
+# Before deploying any agent, set the required secrets via:
+#   wrangler secret put KEY_NAME
+#
+# Required secrets by agent:
+#
+# legal-monitor:
+#   - EQUALDEX_API_KEY (from equaldex.com/api)
+#   - LEGISCAN_API_KEY (from legiscan.com)
+#
+# news-monitor:
+#   - BRAVE_API_KEY (from api.search.brave.com)
+#
+# community-validator:
+#   - ANTHROPIC_API_KEY (from console.anthropic.com)
+#   - TALLY_WEBHOOK_SECRET (from Tally.so webhook settings)
+#   - ADMIN_PASSWORD (generate strong password)
+#
+# social-intelligence:
+#   - REDDIT_CLIENT_ID (from reddit.com/apps)
+#   - REDDIT_CLIENT_SECRET (from reddit.com/apps)
+#
+# All agents:
+#   - D1 binding (configured above)
+
+# DEPLOYMENT NOTES:
+# Routes and cron triggers are configured per-agent due to account-level limits (5 crons max).
+# Deploy each agent separately by updating the 'main' field:
+#   1. legal-monitor: wrangler deploy  (cron: 0 6 * * 1)
+#   2. news-monitor: update main, wrangler deploy  (cron: 0 6 * * *)
+#   3. event-monitor: update main, wrangler deploy  (cron: 0 6 * * 2)
+#   4. community-validator: update main, wrangler deploy  (webhook routes)
+#   5. social-intelligence: update main, wrangler deploy  (request-driven)
+#
+# After deployment, use Cloudflare Dashboard to assign routes to workers.
+
+[observability]
+enabled = true

@@ -10,14 +10,14 @@
  * the admin interface before reaching the public platform.
  *
  * Data Sources:
- *   - Equaldex API (equaldex.com/api) — legal status for 200+ countries:
+ *   - Equaldex API (equaldex.com/api) - legal status for 200+ countries:
  *       same-sex relationships, marriage equality, adoption rights,
  *       anti-discrimination protections, anti-propaganda laws,
  *       gender marker changes, conversion therapy legality
- *   - U.S. State Department RSS — travel advisory level changes
+ *   - U.S. State Department RSS - travel advisory level changes
  *       (Level 1: Normal, Level 2: Increased Caution, Level 3: Reconsider,
  *        Level 4: Do Not Travel)
- *   - LegiScan API — U.S. state LGBTQ+-targeted bill tracking (bathroom
+ *   - LegiScan API - U.S. state LGBTQ+-targeted bill tracking (bathroom
  *       bills, drag bans, trans healthcare restrictions, "Don't Say Gay")
  *
  * Alert Structure (D1 safety_alerts table):
@@ -25,12 +25,12 @@
  *   summary, previous_value, new_value, human_reviewed=0, raw_payload
  *
  * Schedule: runs every 6 hours via Cloudflare Cron Trigger
- *   crons: ["0 */6 * * *"]
+ * (cron pattern: every 6 hours)
  *
  * Environment Variables Required:
- *   EQUALDEX_API_KEY  — from equaldex.com/api (free tier: 100 req/day)
- *   LEGISCAN_API_KEY  — from legiscan.com (free tier available)
- *   DB                — Cloudflare D1 database binding
+ *   EQUALDEX_API_KEY  - from equaldex.com/api (free tier: 100 req/day)
+ *   LEGISCAN_API_KEY  - from legiscan.com (free tier available)
+ *   DB                - Cloudflare D1 database binding
  *
  * @module legal-monitor
  */
