@@ -7,7 +7,7 @@ compatibility_date = "2026-03-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "wandersafe"
-database_id = "7f18bc1f-8226-4d80-9d0d-be58b5d56ef4"
+database_id = "" # Set locally: wrangler d1 list | grep wandersafe
 
 # Environment Variables (non-secret)
 [vars]
