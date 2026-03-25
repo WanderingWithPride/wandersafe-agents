@@ -43,7 +43,7 @@
  *   - Individual usernames are not stored in D1; only the signal content and source URL
  *   - No user profiling — this agent is destination-oriented, not person-oriented
  *
- * Schedule: runs every 1 hour via Cloudflare Cron Trigger
+ * Schedule: Not scheduled (request-driven only)
  *
  * Environment Variables Required:
  *   REDDIT_CLIENT_ID      — Reddit API app credentials (free, oauth.reddit.com)

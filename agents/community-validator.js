@@ -44,19 +44,27 @@ async function verifyTallySignature(rawBody, signatureHeader, secret) {
   if (!signatureHeader || !signatureHeader.startsWith('sha256=')) return false;
   const expectedHex = signatureHeader.slice(7);
 
+  // Convert expected hex to Uint8Array for constant-time comparison
+  const expectedBytes = new Uint8Array(
+    expectedHex.match(/.{2}/g).map(byte => parseInt(byte, 16))
+  );
+
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ['sign']
+    ['verify']
   );
-  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody));
-  const actualHex = Array.from(new Uint8Array(mac))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
 
-  return expectedHex === actualHex;
+  // crypto.subtle.verify performs constant-time comparison internally,
+  // preventing timing side-channel attacks on the HMAC.
+  return crypto.subtle.verify(
+    'HMAC',
+    key,
+    expectedBytes,
+    new TextEncoder().encode(rawBody)
+  );
 }
 
 /**
@@ -110,7 +118,7 @@ Return ONLY valid JSON with these exact fields (no markdown, no explanation):
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
+      'anthropic-version': '2024-10-22',
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
@@ -141,20 +149,26 @@ function stripPII(text) {
 }
 
 /**
- * Verify admin password from request headers or query param.
+ * Verify admin access via Bearer token or ws_session cookie.
+ * No query-parameter fallback — passwords must not appear in URLs.
  */
 function isAuthorized(request, password) {
+  // Bearer token (API / programmatic access)
   const auth = request.headers.get('Authorization') ?? '';
   if (auth.startsWith('Bearer ') && auth.slice(7) === password) return true;
-  const url = new URL(request.url);
-  if (url.searchParams.get('pw') === password) return true;
+
+  // Cookie-based session (browser admin dashboard)
+  const cookies = request.headers.get('Cookie') ?? '';
+  const match = cookies.match(/(?:^|;\s*)ws_session=([^;]+)/);
+  if (match && match[1] === password) return true;
+
   return false;
 }
 
 /**
  * Render the admin review queue as an HTML page.
  */
-function renderQueue(reports, baseUrl, pw) {
+function renderQueue(reports, baseUrl) {
   if (reports.length === 0) {
     return '<p style="color:#888">No pending reports. All caught up.</p>';
   }
@@ -177,12 +191,10 @@ function renderQueue(reports, baseUrl, pw) {
       <div style="display:flex;gap:12px">
         <form method="POST" action="${baseUrl}/admin/approve">
           <input type="hidden" name="id" value="${r.id}">
-          <input type="hidden" name="pw" value="${pw}">
           <button type="submit" style="background:#2a7a2a;color:#fff;padding:8px 20px;border:none;border-radius:4px;cursor:pointer">Approve &amp; Publish</button>
         </form>
         <form method="POST" action="${baseUrl}/admin/reject">
           <input type="hidden" name="id" value="${r.id}">
-          <input type="hidden" name="pw" value="${pw}">
           <button type="submit" style="background:#a02020;color:#fff;padding:8px 20px;border:none;border-radius:4px;cursor:pointer">Reject</button>
         </form>
       </div>
@@ -311,7 +323,6 @@ export default {
         });
       }
 
-      const pw = url.searchParams.get('pw') ?? '';
       const { results } = await env.DB.prepare(`
         SELECT id, destination_raw, destination_normalized, country_code,
                incident_type, severity, validity_score, summary,
@@ -337,25 +348,26 @@ export default {
 <body>
   <h1>WanderSafe — Community Report Review Queue</h1>
   <p>${results.length} report(s) pending. <strong>Nothing is published until you approve it.</strong></p>
-  ${renderQueue(results, baseUrl, pw)}
+  ${renderQueue(results, baseUrl)}
 </body>
 </html>`;
 
-      return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      const bearerToken = (request.headers.get('Authorization') ?? '').slice(7);
+      const headers = { 'Content-Type': 'text/html; charset=utf-8' };
+      if (bearerToken) {
+        headers['Set-Cookie'] = `ws_session=${bearerToken}; HttpOnly; Secure; SameSite=Strict; Path=/admin; Max-Age=3600`;
+      }
+      return new Response(html, { headers });
     }
 
     // Admin: approve
     if (method === 'POST' && pathname === '/admin/approve') {
-      const formData = await request.formData().catch(() => null);
-      const id = formData?.get('id');
-      const pw = formData?.get('pw') ?? url.searchParams.get('pw') ?? '';
-
-      const authReq = new Request(request.url, {
-        headers: { 'Authorization': `Bearer ${pw}` },
-      });
-      if (!isAuthorized(authReq, env.ADMIN_PASSWORD)) {
+      if (!isAuthorized(request, env.ADMIN_PASSWORD)) {
         return new Response('Unauthorized', { status: 401 });
       }
+
+      const formData = await request.formData().catch(() => null);
+      const id = formData?.get('id');
 
       if (!id) return new Response('Missing id', { status: 400 });
 
@@ -365,21 +377,17 @@ export default {
         WHERE id = ?
       `).bind(id).run();
 
-      return Response.redirect(`${url.protocol}//${url.host}/admin/queue?pw=${pw}`, 303);
+      return Response.redirect(`${url.protocol}//${url.host}/admin/queue`, 303);
     }
 
     // Admin: reject
     if (method === 'POST' && pathname === '/admin/reject') {
-      const formData = await request.formData().catch(() => null);
-      const id = formData?.get('id');
-      const pw = formData?.get('pw') ?? url.searchParams.get('pw') ?? '';
-
-      const authReq = new Request(request.url, {
-        headers: { 'Authorization': `Bearer ${pw}` },
-      });
-      if (!isAuthorized(authReq, env.ADMIN_PASSWORD)) {
+      if (!isAuthorized(request, env.ADMIN_PASSWORD)) {
         return new Response('Unauthorized', { status: 401 });
       }
+
+      const formData = await request.formData().catch(() => null);
+      const id = formData?.get('id');
 
       if (!id) return new Response('Missing id', { status: 400 });
 
@@ -389,7 +397,7 @@ export default {
         WHERE id = ?
       `).bind(id).run();
 
-      return Response.redirect(`${url.protocol}//${url.host}/admin/queue?pw=${pw}`, 303);
+      return Response.redirect(`${url.protocol}//${url.host}/admin/queue`, 303);
     }
 
     return new Response('Not Found', { status: 404 });

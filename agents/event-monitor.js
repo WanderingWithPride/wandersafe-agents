@@ -34,7 +34,7 @@
  *   - Venue change that affects safety profile
  *   - New event announced (positive signal for destination)
  *
- * Schedule: runs every 12 hours via Cloudflare Cron Trigger
+ * Schedule: Weekly Tue 06:00 UTC (cron: 0 6 * * 2)
  *
  * Environment Variables Required:
  *   DB — Cloudflare D1 database binding

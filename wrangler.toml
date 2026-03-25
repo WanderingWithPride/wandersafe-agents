@@ -1,6 +1,6 @@
 name = "wandersafe-agents"
-main = "agents/social-intelligence.js"
-compatibility_date = "2024-01-01"
+main = "agents/index.js"
+compatibility_date = "2026-03-01"
 
 # Cloudflare D1 Database Binding
 # Prerequisites: wrangler d1 create wandersafe

@@ -30,7 +30,7 @@
  *
  * Alert Structure: same as legal-monitor.js, agent_type = 'news'
  *
- * Schedule: runs every 2 hours via Cloudflare Cron Trigger
+ * Schedule: Daily 06:00 UTC (cron: 0 6 * * *)
  *
  * Environment Variables Required:
  *   DB — Cloudflare D1 database binding

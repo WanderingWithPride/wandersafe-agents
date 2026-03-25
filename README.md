@@ -21,13 +21,13 @@ This repo is MIT licensed. The data schema and agent interfaces are documented s
 
 WanderSafe runs five specialized monitoring agents, each responsible for a distinct data layer:
 
-| Agent | File | Data Sources | Schedule |
-|---|---|---|---|
-| Legal Monitor | `agents/legal-monitor.js` | Equaldex API, U.S. State Dept RSS, LegiScan | Every 6 hours |
-| News Monitor | `agents/news-monitor.js` | PinkNews, LGBTQ Nation, HRW, The Advocate RSS | Every 2 hours |
-| Event Monitor | `agents/event-monitor.js` | Pride organization sites, IGLTA, local event feeds | Daily |
-| Community Validator | `agents/community-validator.js` | Traveler-submitted reports (Tally webhook → D1) | On webhook receipt |
-| Social Intelligence | `agents/social-intelligence.js` | Reddit r/gaytravellers, r/LGBTtravel, r/lgbt; public social posts | Every hour |
+| Agent | File | Data Sources | Schedule | Status |
+|---|---|---|---|---|
+| Legal Monitor | `agents/legal-monitor.js` | Equaldex API, U.S. State Dept RSS, LegiScan | Weekly Mon 06:00 UTC | Implemented |
+| News Monitor | `agents/news-monitor.js` | PinkNews, LGBTQ Nation, HRW, The Advocate RSS | Daily 06:00 UTC | Stub |
+| Event Monitor | `agents/event-monitor.js` | Pride organization sites, IGLTA, local event feeds | Weekly Tue 06:00 UTC | Stub |
+| Community Validator | `agents/community-validator.js` | Traveler-submitted reports (Tally webhook → D1) | On webhook receipt | Implemented |
+| Social Intelligence | `agents/social-intelligence.js` | Reddit r/gaytravellers, r/LGBTtravel, r/lgbt; public social posts | Not scheduled (request-driven) | Stub |
 
 All agents output structured alerts. **Nothing publishes without human review and approval.**
 

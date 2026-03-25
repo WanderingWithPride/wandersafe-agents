@@ -48,7 +48,7 @@ WanderSafe monitors legal status, news and incident reporting, social media sign
 
 **Design principle:** The legal layer is the foundation, but the system is designed specifically around the gap between what is legal and what is safe.
 
-**Schedule:** Runs every 6 hours.
+**Schedule:** Weekly Mon 06:00 UTC.
 
 ### 2. News Monitor
 
@@ -62,7 +62,7 @@ WanderSafe monitors legal status, news and incident reporting, social media sign
 
 **Key signal:** When a country's legal status and news coverage diverge, that divergence is flagged as a high-priority signal.
 
-**Schedule:** Runs every 2 hours.
+**Schedule:** Daily 06:00 UTC.
 
 ### 3. Social Intelligence Agent
 
@@ -79,7 +79,7 @@ WanderSafe monitors legal status, news and incident reporting, social media sign
 
 **Privacy constraints:** Only public posts are monitored. Individual usernames are not stored. No user profiling — this agent is destination-oriented, not person-oriented.
 
-**Schedule:** Runs every 1 hour.
+**Schedule:** Not scheduled (request-driven only).
 
 ### 4. Event and Political Climate Monitor
 
@@ -95,7 +95,7 @@ WanderSafe monitors legal status, news and incident reporting, social media sign
 
 **Context:** A country hosting World Pride is a different safety environment than the same country six months after a far-right government takes power.
 
-**Schedule:** Runs every 12 hours.
+**Schedule:** Weekly Tue 06:00 UTC.
 
 ### 5. Community Intelligence Agent
 
@@ -112,7 +112,7 @@ WanderSafe monitors legal status, news and incident reporting, social media sign
 - Location data is generalized to city level before storage
 - No personally identifying information survives into the published record
 
-**Schedule:** Runs every 30 minutes.
+**Schedule:** On webhook receipt (event-driven).
 
 ---
 

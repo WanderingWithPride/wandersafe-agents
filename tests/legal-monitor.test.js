@@ -7,32 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// ---------------------------------------------------------------------------
-// Helpers extracted from legal-monitor.js for testability
-// (These mirror the exported internals; real agent uses the same logic)
-// ---------------------------------------------------------------------------
-
-function extractEqualdexFingerprint(data) {
-  const issues = data?.issues ?? {};
-  return {
-    homosexuality:      issues['homosexuality']?.current_value ?? null,
-    same_sex_marriage:  issues['same-sex-marriage']?.current_value ?? null,
-    adoption:           issues['adoption']?.current_value ?? null,
-    anti_discrimination: issues['anti-discrimination']?.current_value ?? null,
-    changing_gender:    issues['changing-gender']?.current_value ?? null,
-    conversion_therapy: issues['conversion-therapy']?.current_value ?? null,
-  };
-}
-
-function equaldexChangeSeverity(field, newValue) {
-  const val = (newValue ?? '').toLowerCase();
-  if (field === 'homosexuality') {
-    if (val.includes('illegal') || val.includes('criminal')) return 'critical';
-    if (val.includes('legal')) return 'medium';
-  }
-  if (field === 'same_sex_marriage') return 'medium';
-  return 'low';
-}
+import { extractEqualdexFingerprint, equaldexChangeSeverity } from '../agents/legal-monitor.js';
 
 // ---------------------------------------------------------------------------
 // Fixtures

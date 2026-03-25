@@ -24,8 +24,7 @@
  *   destination_id, severity, agent_type='legal', source_url, source_name,
  *   summary, previous_value, new_value, human_reviewed=0, raw_payload
  *
- * Schedule: runs every 6 hours via Cloudflare Cron Trigger
- * (cron pattern: every 6 hours)
+ * Schedule: Weekly Mon 06:00 UTC (cron: 0 6 * * 1)
  *
  * Environment Variables Required:
  *   EQUALDEX_API_KEY  - from equaldex.com/api (free tier: 100 req/day)
@@ -53,6 +52,12 @@ const STATE_DEPT_RSS_URL =
   'https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories.html/_jcr_content/Grid/par_fullwidth_0/par/NewsletterSignup/rss.xml';
 
 const ADVISORY_SEVERITY = { 1: 'informational', 2: 'low', 3: 'high', 4: 'critical' };
+
+/** Map tracked ISO codes to country names for State Dept RSS title matching. */
+const COUNTRY_NAMES = {
+  ES: 'Spain', MX: 'Mexico', PL: 'Poland', RW: 'Rwanda', IT: 'Italy',
+  DE: 'Germany', NL: 'Netherlands', TH: 'Thailand', AR: 'Argentina', US: 'United States',
+};
 
 /**
  * Fetch Equaldex legal status for one country.
@@ -251,10 +256,12 @@ async function runStateDeptPass(db) {
   }
 
   for (const advisory of advisories) {
-    // Match advisory title against tracked country codes
-    const match = TRACKED_COUNTRY_CODES.find(code =>
-      advisory.title.toUpperCase().includes(code)
-    );
+    // Match advisory title against country names (not ISO codes, which
+    // produce false positives on substrings like "ES" in "DISCUSS")
+    const match = TRACKED_COUNTRY_CODES.find(code => {
+      const name = COUNTRY_NAMES[code];
+      return name && advisory.title.toUpperCase().includes(name.toUpperCase());
+    });
     if (!match) continue;
 
     const destinationId = await getDestinationId(db, match);
@@ -279,6 +286,8 @@ async function runStateDeptPass(db) {
 
   return alertCount;
 }
+
+export { extractEqualdexFingerprint, equaldexChangeSeverity };
 
 export default {
   async scheduled(event, env, ctx) {

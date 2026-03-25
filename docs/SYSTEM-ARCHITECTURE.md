@@ -182,7 +182,7 @@ Email notification → Michael
 (Subject: "[WanderSafe] New community report: {destination}")
       |
       v
-[HUMAN REVIEW — Google Sheets moderation queue]
+[HUMAN REVIEW — D1 database + admin dashboard review queue]
 Review checklist:
   □ Safety info specific and plausible
   □ No identifiable strangers in photos
@@ -583,4 +583,4 @@ wandersafe-grant/
 - [PRIVACY.md](PRIVACY.md) — community reporter data protection
 - [GOVERNANCE.md](GOVERNANCE.md) — editorial independence + data rights
 - [ROADMAP.md](https://github.com/WanderingWithPride/HomeBase) — HomeBase projects/wandersafe/ROADMAP.md
-- [Full Spec](https://github.com/WanderingWithPride/wandersafe-grant) — /Users/michael/money-claude/wandersafe-full-spec.md
+- [Full Spec](https://github.com/WanderingWithPride/wandersafe-grant) — see wandersafe-grant repository
