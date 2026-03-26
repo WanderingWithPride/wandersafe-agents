@@ -11,10 +11,10 @@
 | Agent | Status | Version | Purpose |
 |-------|--------|---------|---------|
 | legal-monitor | ✅ Live | e5bcece1 | Equaldex LGBTQ+ legal status + State Dept travel advisories |
-| news-monitor | Deployed (stub -- no functional logic) | e5bcece1 | Brave API search for LGBTQ+ travel news |
-| event-monitor | Deployed (stub -- no functional logic) | e5bcece1 | Local LGBTQ+ events + Pride festivals by destination |
+| news-monitor | Live | e5bcece1 | RSS feeds (5 sources) + Brave Search for LGBTQ+ safety news |
+| event-monitor | Live | e5bcece1 | State Dept advisories + Equaldex legal changes + Pride cancellations |
 | community-validator | ✅ Live | f9e9bee6 | Receives Tally form submissions, validates, stores in D1 |
-| social-intelligence | Deployed (stub -- no functional logic) | a306848a | Monitors LGBTQ+ social platforms for safety insights |
+| social-intelligence | Live (manual trigger) | a306848a | Reddit r/gaytravelers + r/LGBTtravel + r/lgbt safety signals |
 
 ### Database
 
