@@ -1,0 +1,33 @@
+# AI-ANALYSIS.md## ARCHITECTURE OVERVIEW
+WanderSafe Agents is an open-source monitoring pipeline that aggregates LGBTQ+ travel safety data from legal, news, event, community, and social sources into structured alerts requiring human review before publication. The system comprises five specialized Cloudflare Workers agents: legal-monitor (Equaldex, U.S. State Dept, LegiScan), news-monitor (LGBTQ+ news RSS), event-monitor (Pride/event feeds), community-validator (Tally webhook → D1), and social-intelligence (Reddit/social signals). Agents process raw data into standardized alert objects stored in a Cloudflare D1 database with `human_reviewed=false`, awaiting approval via an internal review interface (referenced by ADMIN_PASSWORD). Approved alerts (`human_reviewed=true`) power the public WanderSafe platform at wanderingwithpride.com.
+
+The tech stack centers on Cloudflare's serverless platform: Workers JavaScript for agent logic, D1 (SQLite) for data storage, and Wrangler for deployment. External dependencies include Equaldex and LegiScan APIs for legal status, Anthropic's Claude for report classification, Tally.so for community intake, and public RSS feeds for news/events. Data flow begins with agents fetching/parsing source data, normalizing it into the D1 schema (schema/d1-schema.sql), and inserting alerts. The community-validator agent uniquely processes inbound webhook payloads from Tally, uses Anthropic to classify reports, and inserts them for review. Human reviewers (via a separate interface) assess credibility, severity, and patterns before flipping `human_reviewed=true`, enabling public display. This design ensures no automated data reaches users without manual validation—a core safety constraint.
+
+## TOP 5 TODOs BY IMPACT
+1. **Implement news-monitor.js**: Replace the stub agent with functional RSS fetching/parsing for PinkNews, LGBTQ Nation, HRW, and The Advocate feeds, inserting alerts into D1. *Why*: Completes the news data layer, critical for real-time safety updates; currently missing unblinds the pipeline to time-sensitive threats. *Effort*: 2 days (HTTP fetching, XML parsing, D1 insertion, error handling).  
+2. **Implement event-monitor.js**: Replace stub with active scraping/Polling of Pride organization sites, IGLTA calendars, and local event sources for cancellations, threats, or schedule changes. *Why*: Event safety (e.g., Pride march disruptions) is high-impact for travelers; absence leaves a major gap in situational awareness. *Effort*: 2 days (HTML parsing, iCal handling, deduplication logic).  
+3. **Implement social-intelligence.js**: Build Reddit monitoring (r/gaytravellers, r/LGBTtravel, r/lgbt) using Reddit API, filtering for safety signals via keyword/NLP, and inserting actionable alerts. *Why*: Social media provides ground-level, early-warning intelligence; stub status ignores a vital community-sourced data stream. *Effort*: 3 days (API auth, rate limiting, signal classification, D1 integration).  4. **Add comprehensive test coverage for agent logic**: Write unit/integration tests for all agents (especially newly implemented news/event/social) covering API failures, malformed data, and D1 write success/failure. *Why*: Prevents regressions in data processing; current test suite (npm test) likely lacks depth for stub replacements. *Effort*: 2 days (test framework setup, mocking external APIs, edge cases).  
+5. **Create automated deployment script**: Replace individual `wrangler deploy` commands with a single script (e.g., deploy.sh) that validates environment variables, deploys all agents sequentially, and logs outcomes. *Why*: Reduces deployment errors and enables consistent releases; current manual process risks misconfiguration or skipped agents. *Effort*: 1 day (script creation, env var checks, logging, DEPLOYMENT.md update).  
+
+## KNOWN TECHNICAL DEBT
+- Code duplication in HTTP fetching, error handling, and D1 insertion logic across agents (e.g., legal-monitor.js and stub agents), increasing maintenance burden and inconsistency risks.  
+- Missing retry mechanisms with exponential backoff for external API calls (Equaldex, LegiScan, Anthropic, RSS feeds) in agents, creating fragility during transient network issues or rate limits.  
+- Stub agents (news-monitor.js, event-monitor.js, social-intelligence.js) currently return empty/no-op responses; if accidentally deployed, they create false expectations of coverage while consuming Worker invocations.  - Potential missing webhook signature validation in community-validator.js for Tally payloads (reliance on TALLY_WEBHOOK_SECRET alone without HMAC verification), enabling spoofed report injection.  
+- No shared utility module for common functions (logging, config, D1 helpers), leading to inconsistent implementation and harder-to-maintain agents as logic evolves.  
+
+## README IMPROVEMENTS
+# WanderSafe Agents
+
+WanderSafe is an LGBTQ+ travel safety intelligence platform that aggregates and verifies data from legal sources, government advisories, news outlets, community reports, and social media to produce actionable safety insights for destinations worldwide.
+
+This repository contains the open-source agent pipeline responsible for monitoring these data sources and preparing structured alerts for human review.
+
+- **Live platform**: https://wanderingwithpride.com  
+- **Methodology**: https://wanderingwithpride.com/wandersafe-methodology.html  
+
+## EXTERNAL DEPENDENCIES TO AUDIT
+- **wrangler**: Verify version in wrangler.toml against latest release; outdated Wrangler versions may lack security patches or Worker runtime features.  
+- **HTTP clients** (e.g., axios, node-fetch): Audit package.json dependencies via `npm audit` for known vulnerabilities; prioritize updating if using deprecated libraries like `request`.  - **Equaldex API integration** (agents/legal-monitor.js): Confirm endpoint validity and authentication method against current Equaldex API documentation; check for rate limit changes or API version deprecation.  
+- **LegiScan API integration** (agents/legal-monitor.js): Validate bill tracking endpoints and data formats; LegiScan occasionally updates its API schema, risking silent failures.  
+- **Anthropic SDK** (if used in community-validator.js): Ensure the `anthropic` npm package is current; outdated versions may miss security fixes or support for new Claude model versions.  
+- **RSS feed URLs**: Validate accessibility and format of PinkNews, LGBTQ Nation, HRW, and The Advocate feeds referenced in README; inactive or changed feeds would break news-monitor.js on implementation.
