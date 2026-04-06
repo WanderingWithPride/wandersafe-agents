@@ -139,20 +139,28 @@ Community-submitted reports are anonymized before publication. No personal ident
 
 ## Live Destinations
 
-Ten destination pages are now live, each powered by this pipeline and updated as conditions change:
+**152 destination pages** are live at [wanderingwithpride.com/wandersafe/](https://wanderingwithpride.com/wandersafe/), covering destinations across 6 continents. The monitoring pipeline tracks 69 destinations via API with automated safety scoring, and the D1 database holds full data for 33 destinations with legal status, safety alerts, and community reports.
 
-| Destination | URL | Notes |
+**Pipeline status (April 2026):**
+- Legal Monitor: **Active** -- polling Equaldex API + US State Department weekly
+- Community Validator: **Active** -- processing Tally form submissions
+- News Monitor: *Coming soon*
+- Event Monitor: *Coming soon*
+- Social Intelligence: *Coming soon*
+
+**First published alert:** April 6, 2026 (Madrid, Spain -- State Department advisory change)
+
+Sample destinations (full list at [wandersafe-destinations](https://wanderingwithpride.com/wandersafe/)):**
+
+| Destination | Safety Tier | URL |
 |---|---|---|
-| Madrid, Spain | [wanderingwithpride.com/wandersafe-madrid.html](https://wanderingwithpride.com/wandersafe-madrid.html) | LGBTQ+ hub, home of Madrid Bear Week (Osos) |
-| Barcelona, Spain | [wanderingwithpride.com/wandersafe-barcelona.html](https://wanderingwithpride.com/wandersafe-barcelona.html) | Pride capital with one of Europe's largest Pride festivals |
-| Puerto Vallarta, Mexico | [wanderingwithpride.com/wandersafe-puerto-vallarta.html](https://wanderingwithpride.com/wandersafe-puerto-vallarta.html) | Mexico's most established LGBTQ+ resort destination |
-| Krakow, Poland | [wanderingwithpride.com/wandersafe-krakow.html](https://wanderingwithpride.com/wandersafe-krakow.html) | Central European destination with evolving legal context |
-| Rwanda, East Africa | [wanderingwithpride.com/wandersafe-rwanda.html](https://wanderingwithpride.com/wandersafe-rwanda.html) | High-demand destination with complex safety picture for LGBTQ+ travelers |
-| Rome, Italy | [wanderingwithpride.com/wandersafe-rome.html](https://wanderingwithpride.com/wandersafe-rome.html) | Major European destination with conservative political undercurrents |
-| Berlin, Germany | [wanderingwithpride.com/wandersafe/berlin-germany.html](https://wanderingwithpride.com/wandersafe/berlin-germany.html) | LGBTQ+ capital of Europe with globally recognized queer infrastructure |
-| Amsterdam, Netherlands | [wanderingwithpride.com/wandersafe/amsterdam-netherlands.html](https://wanderingwithpride.com/wandersafe/amsterdam-netherlands.html) | First country to legalize same-sex marriage, strong legal protections |
-| Bangkok, Thailand | [wanderingwithpride.com/wandersafe/bangkok-thailand.html](https://wanderingwithpride.com/wandersafe/bangkok-thailand.html) | Visible LGBTQ+ scene with legal protections lagging social acceptance |
-| Buenos Aires, Argentina | [wanderingwithpride.com/wandersafe/buenos-aires-argentina.html](https://wanderingwithpride.com/wandersafe/buenos-aires-argentina.html) | Pride capital of South America with comprehensive legal protections |
+| Madrid, Spain | Safe | [wandersafe/madrid-spain](https://wanderingwithpride.com/wandersafe/madrid-spain) |
+| Berlin, Germany | Safe | [wandersafe/berlin-germany](https://wanderingwithpride.com/wandersafe/berlin-germany) |
+| Bangkok, Thailand | Safe | [wandersafe/bangkok-thailand](https://wanderingwithpride.com/wandersafe/bangkok-thailand) |
+| Cape Town, South Africa | Caution | [wandersafe/cape-town-south-africa](https://wanderingwithpride.com/wandersafe/cape-town-south-africa) |
+| Uganda | High Risk | [wandersafe/uganda](https://wanderingwithpride.com/wandersafe/uganda) |
+
+See [methodology](https://wanderingwithpride.com/wandersafe/methodology) for how ratings are calculated.
 
 ---
 
