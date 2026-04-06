@@ -1,3 +1,9 @@
+# WanderSafe Destination Safety Scoring
+
+> **Current implementation:** 4-category model (Legal, Safety, Community, Infrastructure).
+> A 7-category expansion (adding Healthcare Access, Women's Safety, Digital Privacy Risk) is planned for future releases.
+> This document describes the deterministic, rule-based scoring pipeline. No generative AI produces ratings.
+
 # WanderSafe Destination Safety Scoring Algorithm
 
 > Version: 1.0 | Published: March 2026 | License: CC BY 4.0
@@ -109,10 +115,10 @@ function score_destination(destination):
 
 
 function classify_score(score):
-  if score >= 75: return "Green — Safe"
-  if score >= 50: return "Amber — Exercise Caution"
-  if score >= 25: return "Red — High Risk"
-  return "Black — Do Not Travel"
+  if score >= 75: return "Tier 1 — Safe"
+  if score >= 50: return "Tier 2 — Generally Safe"
+  if score >= 25: return "Tier 3 — Exercise Caution"
+  return "Tier 4 — High Risk"
 
 
 function weighted_community_reports(destination, lookback_days):
@@ -134,10 +140,10 @@ function weighted_community_reports(destination, lookback_days):
 
 | Rating | Score Range | Meaning |
 |---|---|---|
-| Green — Safe | 75–100 | Legal protections in place or no criminalizing law; no documented enforcement pattern; community reports generally positive |
-| Amber — Exercise Caution | 50–74 | Legal ambiguity or legal status OK but significant social risk; sporadic enforcement; mixed community reports |
-| Red — High Risk | 25–49 | Active criminalization with documented enforcement; digital exploitation documented; travelers face real legal exposure |
-| Black — Do Not Travel | 0–24 | Active criminalization + severe penalties (life/death) + active enforcement + documented traveler arrests |
+| Tier 1 — Safe | 75–100 | Legal protections in place or no criminalizing law; no documented enforcement pattern; community reports generally positive |
+| Tier 2 — Generally Safe | 50–74 | Legal ambiguity or legal status OK but significant social risk; sporadic enforcement; mixed community reports |
+| Tier 3 — Exercise Caution | 25–49 | Active criminalization with documented enforcement; digital exploitation documented; travelers face real legal exposure |
+| Tier 4 — High Risk | 0–24 | Active criminalization + severe penalties (life/death) + active enforcement + documented traveler arrests |
 
 ---
 
