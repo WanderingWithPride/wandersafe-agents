@@ -5,7 +5,7 @@
 This repository contains the open-source monitoring agent pipeline that powers WanderSafe.
 
 - **Live platform**: https://wanderingwithpride.com
-- **Methodology**: https://wanderingwithpride.com/wandersafe-methodology.html
+- **Methodology**: https://wanderingwithpride.com/wandersafe/methodology.html
 
 ---
 
@@ -23,11 +23,11 @@ WanderSafe runs five specialized monitoring agents, each responsible for a disti
 
 | Agent | File | Data Sources | Schedule | Status |
 |---|---|---|---|---|
-| Legal Monitor | `agents/legal-monitor.js` | Equaldex API, U.S. State Dept RSS, LegiScan | Weekly Mon 06:00 UTC | Implemented |
-| News Monitor | `agents/news-monitor.js` | PinkNews, LGBTQ Nation, HRW, The Advocate RSS | Daily 06:00 UTC | Stub |
-| Event Monitor | `agents/event-monitor.js` | Pride organization sites, IGLTA, local event feeds | Weekly Tue 06:00 UTC | Stub |
-| Community Validator | `agents/community-validator.js` | Traveler-submitted reports (Tally webhook → D1) | On webhook receipt | Implemented |
-| Social Intelligence | `agents/social-intelligence.js` | Reddit r/gaytravellers, r/LGBTtravel, r/lgbt; public social posts | Not scheduled (request-driven) | Stub |
+| Legal Monitor | `agents/legal-monitor.js` | Equaldex API, U.S. State Dept RSS | Weekly Mon 06:00 UTC | Active |
+| News Monitor | `agents/news-monitor.js` | PinkNews, HRW, LGBTQ Nation, The Advocate RSS | Daily 06:00 UTC | Active |
+| LegiScan Monitor | `agents/legiscan-monitor.js` | US state legislation, 14 search terms, 50 states + federal, Claude Haiku classification | Daily 07:00 UTC | Active |
+| Community Validator | `agents/community-validator.js` | Traveler-submitted reports (Tally webhook → D1), Claude Haiku validation | On webhook receipt | Active |
+| Social Intelligence | `agents/social-intelligence.js` | Reddit r/gaytravellers, r/LGBTtravel, r/lgbt; public social posts | Not scheduled (request-driven) | Planned |
 
 All agents output structured alerts. **Nothing publishes without human review and approval.**
 
@@ -38,9 +38,9 @@ All agents output structured alerts. **Nothing publishes without human review an
 ```
 wandersafe-agents/
 ├── agents/
-│   ├── legal-monitor.js          # Equaldex + State Dept + LegiScan
+│   ├── legal-monitor.js          # Equaldex + State Dept
 │   ├── news-monitor.js           # LGBTQ+ news RSS feeds
-│   ├── event-monitor.js          # Pride events and cancellations
+│   ├── legiscan-monitor.js       # US state legislation (50 states + federal)
 │   ├── community-validator.js    # Traveler report processing
 │   └── social-intelligence.js   # Public social media signals
 ├── schema/
@@ -60,10 +60,11 @@ To run this pipeline for your own community:
 1. **Cloudflare Workers account** — free tier is sufficient for small-scale monitoring
 2. **Cloudflare D1 database** — serverless SQLite, included in Workers free tier
 3. **Equaldex API key** — free at [equaldex.com/api](https://www.equaldex.com/api) — legal status data for 200+ countries
-4. **Anthropic API key** — for Claude-powered community report classification (pay-per-use, ~$5/month at low volume)
+4. **Anthropic API key** — for Claude-powered community report classification and LegiScan bill classification (pay-per-use, ~$5/month at low volume)
 5. **Tally.so account** — community report intake form (free tier available); configure the webhook to point at your community-validator Worker
-6. **Optional**: Reddit API credentials for social monitoring (free tier)
-7. **Optional**: RSS feed access to PinkNews, HRW, LGBTQ Nation (all public, no API key required)
+6. **LegiScan API key** — free at [legiscan.com](https://legiscan.com) — US state and federal legislation tracking
+7. **Optional**: Reddit API credentials for social monitoring (free tier)
+8. **Optional**: RSS feed access to PinkNews, HRW, LGBTQ Nation, The Advocate (all public, no API key required)
 
 ---
 
@@ -93,8 +94,9 @@ wrangler d1 execute wandersafe --file=schema/d1-schema.sql
 
 # Deploy agents as Cloudflare Workers
 wrangler deploy agents/legal-monitor.js
-wrangler deploy agents/community-validator.js
 wrangler deploy agents/news-monitor.js
+wrangler deploy agents/legiscan-monitor.js
+wrangler deploy agents/community-validator.js
 # ... etc
 ```
 
@@ -142,13 +144,13 @@ Community-submitted reports are anonymized before publication. No personal ident
 **152 destination pages** are live at [wanderingwithpride.com/wandersafe/](https://wanderingwithpride.com/wandersafe/), covering destinations across 6 continents. The monitoring pipeline tracks 69 destinations via API with automated safety scoring, and the D1 database holds full data for 33 destinations with legal status, safety alerts, and community reports.
 
 **Pipeline status (April 2026):**
-- Legal Monitor: **Active** -- polling Equaldex API + US State Department weekly
-- Community Validator: **Active** -- processing Tally form submissions
-- News Monitor: *Coming soon*
-- Event Monitor: *Coming soon*
-- Social Intelligence: *Coming soon*
+- Legal Monitor: **Active** — polling Equaldex API + US State Department weekly
+- News Monitor: **Active** — ingesting PinkNews, HRW, LGBTQ Nation, The Advocate daily
+- LegiScan Monitor: **Active** — tracking 14 search terms across 50 states + federal, daily
+- Community Validator: **Active** — processing Tally form submissions with Claude Haiku validation
+- Social Intelligence: *Planned* (stub)
 
-**First published alert:** April 6, 2026 (Madrid, Spain -- State Department advisory change)
+**First published alert:** April 6, 2026 (Madrid, Spain — State Department advisory change)
 
 Sample destinations (full list at [wandersafe-destinations](https://wanderingwithpride.com/wandersafe/)):**
 
@@ -160,7 +162,7 @@ Sample destinations (full list at [wandersafe-destinations](https://wanderingwit
 | Cape Town, South Africa | Caution | [wandersafe/cape-town-south-africa](https://wanderingwithpride.com/wandersafe/cape-town-south-africa) |
 | Uganda | High Risk | [wandersafe/uganda](https://wanderingwithpride.com/wandersafe/uganda) |
 
-See [methodology](https://wanderingwithpride.com/wandersafe/methodology) for how ratings are calculated.
+See [methodology](https://wanderingwithpride.com/wandersafe/methodology.html) for how ratings are calculated.
 
 ---
 
