@@ -34,7 +34,36 @@
  * @module legal-monitor
  */
 
+// ---------------------------------------------------------------------------
+// LegiScan configuration
+// ---------------------------------------------------------------------------
+
+/** Search terms sent to LegiScan for each target state. */
+const LEGISCAN_SEARCH_QUERIES = [
+  'transgender',
+  'LGBTQ',
+  'sexual orientation',
+  'gender identity',
+  'drag',
+  'bathroom bill',
+  'conversion therapy',
+  "don't say gay",
+];
+
+/**
+ * U.S. states with the highest anti-LGBTQ+ legislative activity.
+ * Also includes 'US' for federal bills.
+ */
+const LEGISCAN_TARGET_STATES = [
+  'US', // Federal
+  'FL', 'TX', 'TN', 'OH', 'MO',
+  'LA', 'IN', 'KY', 'SC', 'GA',
+];
+
+// ---------------------------------------------------------------------------
 // WanderSafe tracked destination country codes (ISO 3166-1 alpha-2)
+// ---------------------------------------------------------------------------
+
 const TRACKED_COUNTRY_CODES = [
   'ES', // Spain (Madrid, Barcelona)
   'MX', // Mexico (Puerto Vallarta)
@@ -287,7 +316,246 @@ async function runStateDeptPass(db) {
   return alertCount;
 }
 
-export { extractEqualdexFingerprint, equaldexChangeSeverity };
+// ---------------------------------------------------------------------------
+// LegiScan helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch bills from LegiScan for one state + query combination.
+ *
+ * @param {string} apiKey   - LegiScan API key
+ * @param {string} state    - Two-letter state code or 'US' for federal
+ * @param {string} query    - Search query string
+ * @returns {Promise<Array>} Array of bill objects from LegiScan results
+ */
+async function fetchLegiScanBills(apiKey, state, query) {
+  const url = `https://api.legiscan.com/?key=${encodeURIComponent(apiKey)}&op=getSearch&state=${encodeURIComponent(state)}&query=${encodeURIComponent(query)}`;
+  const response = await fetch(url, {
+    headers: { 'User-Agent': 'WanderSafe/1.0 (+https://wanderingwithpride.com)' },
+  });
+  if (!response.ok) {
+    throw new Error(`LegiScan ${state}/"${query}": HTTP ${response.status}`);
+  }
+  const data = await response.json();
+  if (data?.status !== 'OK') {
+    throw new Error(`LegiScan ${state}/"${query}": API status ${data?.status ?? 'unknown'}`);
+  }
+  // results is an object keyed by sequential integers, not an array
+  const results = data?.searchresult?.results ?? {};
+  return Object.values(results).filter(r => r && r.bill_id);
+}
+
+/**
+ * Deduplicate bills across multiple query results.
+ * LegiScan returns the same bill_id for overlapping search queries.
+ *
+ * @param {Array} bills - Flat array of bill objects (may contain duplicates)
+ * @returns {Array} Array with duplicates removed (first occurrence wins)
+ */
+function deduplicateBills(bills) {
+  const seen = new Set();
+  return bills.filter(bill => {
+    if (seen.has(bill.bill_id)) return false;
+    seen.add(bill.bill_id);
+    return true;
+  });
+}
+
+/**
+ * Classify a LegiScan bill's severity based on title and description text.
+ *
+ * Severity levels:
+ *   critical - criminalizes, bans healthcare, enables discrimination
+ *   high     - restricts rights, limits protections
+ *   medium   - reporting requirements, parental notification
+ *   low      - study committees, non-binding resolutions
+ *
+ * @param {Object} bill - LegiScan bill object (bill_id, title, description, etc.)
+ * @returns {'critical'|'high'|'medium'|'low'}
+ */
+function classifyBillSeverity(bill) {
+  const text = `${bill.title ?? ''} ${bill.description ?? ''}`.toLowerCase();
+
+  // critical: criminalization, bans on gender-affirming healthcare, enables state discrimination
+  const criticalPatterns = [
+    /criminal/,
+    /felony/,
+    /misdemeanor/,
+    /ban.*gender.affirm/,
+    /gender.affirm.*ban/,
+    /prohibit.*gender.affirm/,
+    /gender.affirm.*prohibit/,
+    /ban.*trans.*health/,
+    /trans.*health.*ban/,
+    /ban.*hormone/,
+    /hormone.*ban/,
+    /ban.*puberty blocker/,
+    /puberty blocker.*ban/,
+    /enable.*discriminat/,
+    /discriminat.*permit/,
+    /religious.*exemption.*discriminat/,
+    /discriminat.*religious.*exemption/,
+    /ban.*drag/,
+    /drag.*ban/,
+    /prohibit.*drag/,
+    /drag.*prohibit/,
+  ];
+
+  for (const pattern of criticalPatterns) {
+    if (pattern.test(text)) return 'critical';
+  }
+
+  // high: restrictions on rights, removal of protections
+  const highPatterns = [
+    /restrict.*bathroom/,
+    /bathroom.*restrict/,
+    /prohibit.*bathroom/,
+    /bathroom.*prohibit/,
+    /limit.*bathroom/,
+    /bathroom.*bill/,
+    /facility.*based.*sex/,
+    /sex.*designat.*facilit/,
+    /restrict.*adoption/,
+    /adoption.*restrict/,
+    /prohibit.*adoption/,
+    /repeal.*protect/,
+    /protect.*repeal/,
+    /remove.*protect/,
+    /eliminat.*protect/,
+    /restrict.*conversion/,
+    /prohibit.*conversion/,
+    /ban.*conversion/,
+    /conversion.*therapy/,
+    /restrict.*speech/,
+    /classroom.*prohibit/,
+    /prohibit.*classroom/,
+    /curriculum.*prohibit/,
+    /don.?t say gay/,
+    /prohibit.*lgbtq.*instruction/,
+    /restrict.*name.*change/,
+    /gender.*marker.*restrict/,
+  ];
+
+  for (const pattern of highPatterns) {
+    if (pattern.test(text)) return 'high';
+  }
+
+  // medium: notification, reporting, administrative burdens
+  const mediumPatterns = [
+    /parental.*notif/,
+    /notif.*parental/,
+    /parental.*consent/,
+    /consent.*parental/,
+    /report.*requirement/,
+    /requirement.*report/,
+    /disclosur/,
+    /mandator.*report/,
+  ];
+
+  for (const pattern of mediumPatterns) {
+    if (pattern.test(text)) return 'medium';
+  }
+
+  // default: study committee, resolutions, etc.
+  return 'low';
+}
+
+/**
+ * Get the last LegiScan bill_id fingerprint set stored in D1 for a state.
+ * Returns a Set of previously seen bill_ids so we don't re-alert on known bills.
+ *
+ * @param {Object} db     - Cloudflare D1 binding
+ * @param {string} state  - Two-letter state code
+ * @returns {Promise<Set<number>>}
+ */
+async function getSeenLegiScanBillIds(db, state) {
+  const row = await db.prepare(`
+    SELECT raw_payload FROM safety_alerts
+    WHERE agent_type = 'legal' AND source_name = 'LegiScan'
+      AND destination_id IN (SELECT id FROM destinations WHERE country_code = 'US')
+    ORDER BY created_at DESC LIMIT 1
+  `).bind().first();
+
+  if (!row?.raw_payload) return new Set();
+  try {
+    const payload = JSON.parse(row.raw_payload);
+    const stateIds = payload?.seen_bill_ids?.[state];
+    return new Set(Array.isArray(stateIds) ? stateIds : []);
+  } catch { return new Set(); }
+}
+
+/**
+ * Run the LegiScan polling pass across all target states and queries.
+ * Deduplicates bills within each state, then alerts on any bill not
+ * previously seen that has severity >= low.
+ *
+ * @param {Object} db     - Cloudflare D1 binding
+ * @param {string} apiKey - LegiScan API key
+ * @returns {Promise<number>} Number of alerts inserted
+ */
+async function runLegiScanPass(db, apiKey) {
+  let alertCount = 0;
+
+  // LegiScan US destination maps to the generic 'US' country code
+  const usDestinationId = await getDestinationId(db, 'US');
+  if (!usDestinationId) {
+    console.warn('legal-monitor: LegiScan pass skipped — no US destination in DB');
+    return 0;
+  }
+
+  for (const state of LEGISCAN_TARGET_STATES) {
+    const seenIds = await getSeenLegiScanBillIds(db, state);
+    const allBills = [];
+
+    // Collect bills across all search queries for this state
+    for (const query of LEGISCAN_SEARCH_QUERIES) {
+      let bills;
+      try {
+        bills = await fetchLegiScanBills(apiKey, state, query);
+      } catch (e) {
+        console.error(`legal-monitor: LegiScan failed for ${state}/"${query}":`, e.message);
+        continue;
+      }
+      allBills.push(...bills);
+    }
+
+    const unique = deduplicateBills(allBills);
+    const newBills = unique.filter(b => !seenIds.has(b.bill_id));
+
+    for (const bill of newBills) {
+      const severity = classifyBillSeverity(bill);
+      const billUrl = bill.url ?? `https://legiscan.com/legislation/${bill.bill_id}`;
+      const stateLabel = state === 'US' ? 'federal' : state;
+
+      await insertAlert(db, {
+        destinationId: usDestinationId,
+        severity,
+        sourceUrl: billUrl,
+        sourceName: 'LegiScan',
+        summary: `New ${stateLabel} bill tracked: ${bill.bill_number ?? bill.bill_id} — ${bill.title ?? 'No title'}. Requires human review before publishing.`,
+        previousValue: null,
+        newValue: bill.bill_id.toString(),
+        rawPayload: {
+          bill_id: bill.bill_id,
+          bill_number: bill.bill_number,
+          state,
+          title: bill.title,
+          description: bill.description,
+          status: bill.status,
+          last_action: bill.last_action,
+          last_action_date: bill.last_action_date,
+          url: billUrl,
+        },
+      });
+      alertCount++;
+      console.log(`legal-monitor: LegiScan alert — ${stateLabel} ${bill.bill_number ?? bill.bill_id}: ${severity}`);
+    }
+  }
+
+  return alertCount;
+}
+
+export { extractEqualdexFingerprint, equaldexChangeSeverity, classifyBillSeverity, deduplicateBills, LEGISCAN_SEARCH_QUERIES, LEGISCAN_TARGET_STATES };
 
 export default {
   async scheduled(event, env, ctx) {
@@ -295,12 +563,17 @@ export default {
 
     const equaldexAlerts  = await runEqualdexPass(env.DB, env.EQUALDEX_API_KEY);
     const stateDeptAlerts = await runStateDeptPass(env.DB);
-    const total = equaldexAlerts + stateDeptAlerts;
+    const legiscanAlerts  = await runLegiScanPass(env.DB, env.LEGISCAN_API_KEY);
+    const total = equaldexAlerts + stateDeptAlerts + legiscanAlerts;
 
     await env.DB.prepare(`
       INSERT INTO agent_runs (agent_type, finished_at, status, alerts_created, metadata)
       VALUES ('legal-monitor', CURRENT_TIMESTAMP, 'success', ?, ?)
-    `).bind(total, JSON.stringify({ equaldex_alerts: equaldexAlerts, state_dept_alerts: stateDeptAlerts })).run();
+    `).bind(total, JSON.stringify({
+      equaldex_alerts: equaldexAlerts,
+      state_dept_alerts: stateDeptAlerts,
+      legiscan_alerts: legiscanAlerts,
+    })).run();
 
     console.log(`legal-monitor: completed — ${total} alerts generated`);
   },
