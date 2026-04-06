@@ -1,101 +1,48 @@
-# WanderSafe Community Reporter Data Protection Policy
+# WanderSafe Reporter Privacy
 
-> Version: 1.0 | Published: March 2026 | Entity: Wandering With Pride Inc. (501(c)(3))
+This document describes how WanderSafe protects community safety report contributors.
 
-This policy describes how WanderSafe collects, uses, retains, and protects data submitted by community safety reporters. It includes a threat model for reporters traveling from or reporting on high-risk jurisdictions.
+## What Happens When You Submit a Report
 
----
+1. You submit a report through the [community report form](https://tally.so/r/BzBaLR)
+2. Tally.so processes the form submission ([Tally privacy policy](https://tally.so/help/privacy-policy))
+3. Our Community Validator receives the submission via webhook
+4. **Your name and email are extracted** for potential follow-up on critical reports only
+5. **Your name and email are NOT stored** in the WanderSafe database
+6. The report text is anonymized before database insertion
+7. AI validation (Claude Haiku) scores report plausibility -- it receives only the anonymized text, never your identity
+8. A human reviewer sees the anonymized report -- they do not see your identity unless follow-up is needed for a critical safety issue
+9. Published reports show destination, date, and content only -- never reporter identity
 
-## What We Collect
+## What We Do NOT Store
 
-When you submit a community safety report via the Tally form at https://tally.so/r/BzBaLR, we receive:
+- Reporter names
+- Reporter email addresses (used only for one-time follow-up, then deleted)
+- IP addresses
+- Device information
+- Location data at time of submission
 
-**Always collected:**
-- Destination
-- Date of travel
-- Overall safety rating (1–5)
-- Incident description (free text)
-- Resources that helped
-- Recommendations for future travelers
-- Whether you'd recommend the destination for solo LGBTQ+ travel
+## Threat Model for Reporters in Hostile Jurisdictions
 
-**Optional (only if you provide it):**
-- Your name (used only for attribution if you request it)
-- Your email address (used only if you request follow-up contact)
+We recognize that submitting a community report about LGBTQ+ safety in a country that criminalizes homosexuality carries real risk. Our protections:
 
-**Not collected by WanderSafe:**
-- IP address (note: Tally's platform may collect this per their own privacy policy — review Tally's privacy policy at tally.so/privacy)
-- Device fingerprint or browser information
-- Location data beyond the destination you report on
+- **Reporter identity is never published**, even if you consent to attribution
+- **Reports do not contain IP addresses** in the database
+- **No geolocation** is collected or stored
+- **We recommend submitting reports after leaving the destination**, not while you are there
+- **We recommend using a VPN** when submitting reports about high-risk destinations
+- **The submission form is hosted by Tally.so** (Belgium, EU), not on our infrastructure
 
----
+## Data Retention
 
-## What We Retain
+- **Anonymized report content**: retained indefinitely (safety intelligence archive)
+- **Reporter contact info**: deleted after follow-up or 30 days, whichever is sooner
+- **AI validation logs**: 90 days
 
-- **Approved reports** are retained indefinitely as part of the WanderSafe community dataset and published in anonymized form.
-- **Unapproved reports** (spam, off-topic, flagged for editorial issues) are deleted within 30 days of review.
-- **Deletion requests:** If you want your report removed, email michael@wanderingwithpride.org with the destination and approximate submission date. Removal is completed within 7 days.
+## Your Rights
 
----
+You may request removal of your community report at any time by emailing michael@wanderingwithpride.com. We will remove it within 30 days.
 
-## Who Has Access
+## Questions
 
-- Raw report submissions are reviewed by WanderSafe editorial staff (currently: Michael Eisinger, sole editor).
-- No third party, advertiser, B2B partner, or government entity has access to raw submissions.
-- Approved reports are published on the public platform in anonymized form — no identifying information is published without your explicit written consent.
-
----
-
-## Threat Model for Reporters in Sensitive Contexts
-
-If you are reporting on a destination where LGBTQ+ identity or conduct is criminalized, or where surveillance of civil society actors is documented, take these precautions before submitting a report:
-
-**Before accessing the form:**
-- Use a VPN. We recommend PIA (privateinternetaccess.com) or Mullvad. Connect to a server outside the jurisdiction you are in before opening the Tally form.
-- Do not submit from a work or school network.
-- Use private/incognito browsing mode.
-
-**When writing your report:**
-- Do not include details that could identify you to local authorities if this record were somehow obtained through legal process: avoid your real name, employer, hotel name, or other identifying specifics.
-- Describe what you observed without identifying yourself or others.
-- Submit anonymously — leave name and email fields blank.
-
-**Timing:**
-- If you are currently in a high-risk jurisdiction, wait until you are in a safe country before submitting.
-- Your safety is more important than your report. We would rather have an incomplete dataset than put a contributor at risk.
-
-**What WanderSafe cannot guarantee:**
-- Tally (our form platform) is a US-based third-party service. WanderSafe has no control over Tally's responses to legal process from foreign governments. See Tally's privacy policy.
-- No system is perfectly secure. The precautions above substantially reduce risk but cannot eliminate it.
-
----
-
-## Data Ownership
-
-Community-submitted safety data is owned by its contributors. Wandering With Pride Inc. holds a non-exclusive license to publish approved reports on the WanderSafe platform.
-
-Community-submitted data **cannot** be:
-- Sold to third parties
-- Licensed for commercial use without explicit community consent
-- Used in any context beyond the WanderSafe platform without contributor permission
-
-This restriction applies to Eisinger Holdings, LLC and to any future commercial operator of the WanderSafe platform. The full data governance policy is at [GOVERNANCE.md](GOVERNANCE.md).
-
----
-
-## Safety-Critical Commitment
-
-Emergency contacts, Rainbow Railroad intake links, OutRight Action International resources, US Embassy contacts, and any information directly relevant to traveler safety or evacuation are **never paywalled**. This commitment is binding under the data governance policy.
-
----
-
-## Contact
-
-Data protection inquiries, report deletion requests, or questions about this policy:
-
-**Michael Eisinger**
-Wandering With Pride Inc.
-michael@wanderingwithpride.org
-Subject line: "WanderSafe Data Protection"
-
-Response time: within 7 days.
+Contact: michael@wanderingwithpride.com
