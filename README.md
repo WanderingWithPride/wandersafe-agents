@@ -1,10 +1,15 @@
 # WanderSafe Agents
 
-**WanderSafe** is an LGBTQ+ travel safety intelligence platform built by [Wandering With Pride](https://wanderingwithpride.com). It synthesizes legal data, government advisories, news monitoring, community reports, and social signals into structured, human-reviewed safety intelligence for every destination.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com/)
+[![Cloudflare D1](https://img.shields.io/badge/Cloudflare-D1%20Database-F38020?logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/d1/)
+
+**WanderSafe** is an LGBTQ+ travel safety intelligence platform built by [Wandering With Pride](https://wanderingwithpride.com). It synthesizes legal data, government advisories, community reports, and legislative monitoring into structured, human-reviewed safety intelligence for LGBTQ+ travelers.
 
 This repository contains the open-source monitoring agent pipeline that powers WanderSafe.
 
 - **Live platform**: https://wanderingwithpride.com
+- **152 destination pages**: https://wanderingwithpride.com/wandersafe/
 - **Methodology**: https://wanderingwithpride.com/wandersafe/methodology.html
 
 ---
@@ -17,19 +22,50 @@ This repo is MIT licensed. The data schema and agent interfaces are documented s
 
 ---
 
-## Architecture: The 5-Agent Pipeline
+## Architecture: Cloudflare Workers Pipeline
 
-WanderSafe runs five specialized monitoring agents, each responsible for a distinct data layer:
+WanderSafe runs on four active Cloudflare Workers backed by a D1 database, plus three stub agents planned for future releases.
 
-| Agent | File | Data Sources | Schedule | Status |
+### Active Workers
+
+| Worker | File | Data Sources | Schedule | Status |
 |---|---|---|---|---|
-| Legal Monitor | `agents/legal-monitor.js` | Equaldex API, U.S. State Dept RSS | Weekly Mon 06:00 UTC | Active |
-| News Monitor | `agents/news-monitor.js` | PinkNews, HRW, LGBTQ Nation, The Advocate RSS | Daily 06:00 UTC | Active |
-| LegiScan Monitor | `agents/legiscan-monitor.js` | US state legislation, 14 search terms, 50 states + federal, Claude Haiku classification | Daily 07:00 UTC | Active |
-| Community Validator | `agents/community-validator.js` | Traveler-submitted reports (Tally webhook → D1), Claude Haiku validation | On webhook receipt | Active |
-| Social Intelligence | `agents/social-intelligence.js` | Reddit r/gaytravellers, r/LGBTtravel, r/lgbt; public social posts | Not scheduled (request-driven) | Planned |
+| wandersafe-admin | `agents/index.js` | Admin queue, D1 database | On request | **Active** |
+| wandersafe-legal-monitor | `agents/legal-monitor.js` | Equaldex API, LegiScan, US State Dept RSS | Weekly Mon 06:00 UTC | **Active** |
+| wandersafe-community-validator | `agents/community-validator.js` | Traveler-submitted reports (Tally webhook → D1), Claude Haiku validation | On webhook receipt | **Active** |
+| wandersafe-intel | `agents/news-monitor.js` | PinkNews, HRW, LGBTQ Nation, The Advocate RSS; Brave Search API | Daily 06:00 UTC | **Active** |
+
+### Coming Soon (Stubs Present)
+
+| Agent | File | Status |
+|---|---|---|
+| News Monitor | `agents/news-monitor.js` (extended) | Coming Soon |
+| Event Monitor | `agents/event-monitor.js` | Coming Soon |
+| Social Intelligence | `agents/social-intelligence.js` | Coming Soon |
 
 All agents output structured alerts. **Nothing publishes without human review and approval.**
+
+---
+
+## Live Destinations
+
+**152 destination pages** are live at [wanderingwithpride.com/wandersafe/](https://wanderingwithpride.com/wandersafe/), covering destinations across 6 continents. URL format: `wanderingwithpride.com/wandersafe/[city-country].html`
+
+**Pipeline status (April 2026):**
+- wandersafe-legal-monitor: **Active** — polling Equaldex API + US State Department weekly
+- wandersafe-intel: **Active** — ingesting PinkNews, HRW, LGBTQ Nation, The Advocate daily
+- wandersafe-community-validator: **Active** — processing Tally form submissions with Claude Haiku validation
+- wandersafe-admin: **Active** — human review queue for alerts before publication
+
+Sample destinations:
+
+| Destination | Safety Tier | URL |
+|---|---|---|
+| Madrid, Spain | Safe | [wandersafe/madrid-spain.html](https://wanderingwithpride.com/wandersafe/madrid-spain.html) |
+| Berlin, Germany | Safe | [wandersafe/berlin-germany.html](https://wanderingwithpride.com/wandersafe/berlin-germany.html) |
+| Bangkok, Thailand | Safe | [wandersafe/bangkok-thailand.html](https://wanderingwithpride.com/wandersafe/bangkok-thailand.html) |
+| Cape Town, South Africa | Caution | [wandersafe/cape-town-south-africa.html](https://wanderingwithpride.com/wandersafe/cape-town-south-africa.html) |
+| Uganda | High Risk | [wandersafe/uganda.html](https://wanderingwithpride.com/wandersafe/uganda.html) |
 
 ---
 
@@ -38,16 +74,19 @@ All agents output structured alerts. **Nothing publishes without human review an
 ```
 wandersafe-agents/
 ├── agents/
-│   ├── legal-monitor.js          # Equaldex + State Dept
-│   ├── news-monitor.js           # LGBTQ+ news RSS feeds
-│   ├── legiscan-monitor.js       # US state legislation (50 states + federal)
-│   ├── community-validator.js    # Traveler report processing
-│   └── social-intelligence.js   # Public social media signals
+│   ├── index.js                  # wandersafe-admin: human review queue
+│   ├── legal-monitor.js          # wandersafe-legal-monitor: Equaldex + LegiScan + State Dept
+│   ├── community-validator.js    # wandersafe-community-validator: Tally webhook + Claude Haiku
+│   ├── news-monitor.js           # wandersafe-intel: LGBTQ+ news RSS + Brave Search
+│   ├── event-monitor.js          # STUB: Event monitoring (Coming Soon)
+│   └── social-intelligence.js   # STUB: Public social media signals (Coming Soon)
 ├── schema/
 │   └── d1-schema.sql             # Cloudflare D1 database schema
 ├── docs/
 │   └── methodology.md            # Full methodology documentation
-├── CONTRIBUTING.md
+├── SCORING.md                    # 4-category scoring model, data sources, methodology
+├── CONTRIBUTING.md               # How to contribute, report issues, suggest destinations
+├── CODE_OF_CONDUCT.md            # Contributor Covenant v2.1
 └── README.md
 ```
 
@@ -60,11 +99,11 @@ To run this pipeline for your own community:
 1. **Cloudflare Workers account** — free tier is sufficient for small-scale monitoring
 2. **Cloudflare D1 database** — serverless SQLite, included in Workers free tier
 3. **Equaldex API key** — free at [equaldex.com/api](https://www.equaldex.com/api) — legal status data for 200+ countries
-4. **Anthropic API key** — for Claude-powered community report classification and LegiScan bill classification (pay-per-use, ~$5/month at low volume)
-5. **Tally.so account** — community report intake form (free tier available); configure the webhook to point at your community-validator Worker
+4. **Anthropic API key** — for Claude-powered community report classification (pay-per-use, ~$5/month at low volume)
+5. **Tally.so account** — community report intake form (free tier available); configure the webhook to point at your `wandersafe-community-validator` Worker
 6. **LegiScan API key** — free at [legiscan.com](https://legiscan.com) — US state and federal legislation tracking
-7. **Optional**: Reddit API credentials for social monitoring (free tier)
-8. **Optional**: RSS feed access to PinkNews, HRW, LGBTQ Nation, The Advocate (all public, no API key required)
+7. **Brave Search API key** — for news monitoring (free tier available)
+8. **Optional**: Reddit API credentials for social monitoring (free tier)
 
 ---
 
@@ -78,27 +117,40 @@ cd wandersafe-agents
 # Install dependencies
 npm install
 
-# Run the test suite to verify everything works
-npm test
-
 # Set up your D1 database
 wrangler d1 create wandersafe
 wrangler d1 execute wandersafe --file=schema/d1-schema.sql
 
-# Set environment variables in Cloudflare Workers dashboard (never commit these):
-#   EQUALDEX_API_KEY       — from equaldex.com/api
-#   ANTHROPIC_API_KEY      — from console.anthropic.com
-#   TALLY_WEBHOOK_SECRET   — from your Tally form webhook settings
-#   ADMIN_PASSWORD         — password for the /admin/queue review interface
-#   LEGISCAN_API_KEY       — from legiscan.com (US bill tracking)
+# Set required secrets via Cloudflare dashboard or wrangler:
+#   wrangler secret put EQUALDEX_API_KEY
+#   wrangler secret put LEGISCAN_API_KEY
+#   wrangler secret put ANTHROPIC_API_KEY
+#   wrangler secret put TALLY_WEBHOOK_SECRET
+#   wrangler secret put ADMIN_PASSWORD
+#   wrangler secret put BRAVE_API_KEY
+# (Never commit secrets to this repository)
 
-# Deploy agents as Cloudflare Workers
-wrangler deploy agents/legal-monitor.js
-wrangler deploy agents/news-monitor.js
-wrangler deploy agents/legiscan-monitor.js
-wrangler deploy agents/community-validator.js
-# ... etc
+# Deploy the active workers
+wrangler deploy agents/index.js --name wandersafe-admin
+wrangler deploy agents/legal-monitor.js --name wandersafe-legal-monitor
+wrangler deploy agents/community-validator.js --name wandersafe-community-validator
+wrangler deploy agents/news-monitor.js --name wandersafe-intel
 ```
+
+---
+
+## Environment Variables
+
+These variable **names** are documented here. Values must be set as Cloudflare Worker secrets — never committed to this repository.
+
+| Variable | Required By | Source |
+|---|---|---|
+| `EQUALDEX_API_KEY` | wandersafe-legal-monitor | equaldex.com/api (free) |
+| `LEGISCAN_API_KEY` | wandersafe-legal-monitor | legiscan.com (free) |
+| `ANTHROPIC_API_KEY` | wandersafe-community-validator | console.anthropic.com |
+| `TALLY_WEBHOOK_SECRET` | wandersafe-community-validator | Tally.so webhook settings |
+| `ADMIN_PASSWORD` | wandersafe-admin | Generate a strong password |
+| `BRAVE_API_KEY` | wandersafe-intel | api.search.brave.com (free tier) |
 
 ---
 
@@ -118,7 +170,7 @@ We actively want to support organizations doing this. Open an issue or email the
 
 ## Human Review Requirement
 
-Every alert generated by these agents goes into a `human_reviewed = false` queue. A trained human reviewer assesses:
+Every alert generated by these agents goes into a `human_reviewed = false` queue managed by `wandersafe-admin`. A trained human reviewer assesses:
 
 - Source credibility
 - Geographic specificity
@@ -126,6 +178,27 @@ Every alert generated by these agents goes into a `human_reviewed = false` queue
 - Whether the incident represents a pattern or an outlier
 
 Only after approval does anything reach the public platform. This is a non-negotiable design constraint. See `docs/methodology.md` for full detail.
+
+---
+
+## Scoring Model
+
+WanderSafe uses a 4-category scoring model:
+
+| Category | Weight | Description |
+|---|---|---|
+| Legal Environment | Highest | Criminalization status, penalty severity, enforcement level |
+| Social Climate | High | Documented community violence, vigilante patterns, social acceptance |
+| Safety & Security | Medium | State Dept advisories, documented traveler incidents, digital surveillance |
+| Healthcare Access | Medium | Emergency services, LGBTQ+-affirming care availability |
+
+Scores are adjusted for trans/nonbinary identities where demographic-specific data is available. See [SCORING.md](SCORING.md) for the full methodology.
+
+---
+
+## Secrets Audit
+
+No secrets or API keys are committed in this repository. All sensitive values are managed as Cloudflare Worker secrets via `wrangler secret put`. If you discover a committed secret in the git history, please report it as a security vulnerability via the process in CONTRIBUTING.md.
 
 ---
 
@@ -139,33 +212,6 @@ Community-submitted reports are anonymized before publication. No personal ident
 
 ---
 
-## Live Destinations
-
-**152 destination pages** are live at [wanderingwithpride.com/wandersafe/](https://wanderingwithpride.com/wandersafe/), covering destinations across 6 continents. The monitoring pipeline tracks 69 destinations via API with automated safety scoring, and the D1 database holds full data for 33 destinations with legal status, safety alerts, and community reports.
-
-**Pipeline status (April 2026):**
-- Legal Monitor: **Active** — polling Equaldex API + US State Department weekly
-- News Monitor: **Active** — ingesting PinkNews, HRW, LGBTQ Nation, The Advocate daily
-- LegiScan Monitor: **Active** — tracking 14 search terms across 50 states + federal, daily
-- Community Validator: **Active** — processing Tally form submissions with Claude Haiku validation
-- Social Intelligence: *Planned* (stub)
-
-**First published alert:** April 6, 2026 (Madrid, Spain — State Department advisory change)
-
-Sample destinations (full list at [wandersafe-destinations](https://wanderingwithpride.com/wandersafe/)):**
-
-| Destination | Safety Tier | URL |
-|---|---|---|
-| Madrid, Spain | Safe | [wandersafe/madrid-spain](https://wanderingwithpride.com/wandersafe/madrid-spain) |
-| Berlin, Germany | Safe | [wandersafe/berlin-germany](https://wanderingwithpride.com/wandersafe/berlin-germany) |
-| Bangkok, Thailand | Safe | [wandersafe/bangkok-thailand](https://wanderingwithpride.com/wandersafe/bangkok-thailand) |
-| Cape Town, South Africa | Caution | [wandersafe/cape-town-south-africa](https://wanderingwithpride.com/wandersafe/cape-town-south-africa) |
-| Uganda | High Risk | [wandersafe/uganda](https://wanderingwithpride.com/wandersafe/uganda) |
-
-See [methodology](https://wanderingwithpride.com/wandersafe/methodology.html) for how ratings are calculated.
-
----
-
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -174,4 +220,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Maintainer
 
-Michael Eisinger — [Wandering With Pride](https://wanderingwithpride.com)
+Michael Eisinger — [Wandering With Pride](https://wanderingwithpride.com) — michael@wanderingwithpride.com
