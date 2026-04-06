@@ -1,28 +1,16 @@
 ---
 name: Data Correction
-about: Report incorrect, outdated, or missing data on a WanderSafe destination page
-title: "[DATA] "
+about: Report incorrect or outdated safety data
+title: "[CORRECTION] "
 labels: data-correction
-assignees: ''
 ---
 
-**Destination:**
+**Destination:** Which page has the error
 
-**What is incorrect or missing:**
+**What is incorrect:**
 
-**What the correct information is:**
-(Please include a source if possible)
+**Correct information:**
 
-**Source(s):**
-(Link to Equaldex, ILGA report, HRW report, news article, official government record, or other verifiable source)
+**Source:** Link confirming the correction
 
-**How urgent is this correction:**
-- [ ] Urgent — traveler safety depends on this (law recently changed, documented incidents)
-- [ ] Important — information is wrong but not immediately dangerous
-- [ ] Minor — small error, outdated reference, broken link
-
-**Additional context:**
-(Optional — personal travel experience, professional context, etc.)
-
----
-Note: WanderSafe does not accept anonymous corrections without a verifiable source. For corrections based on personal travel experience, please submit a community safety report at https://tally.so/r/BzBaLR — those are treated differently from source-based data corrections.
+**Urgency:** Critical / High / Medium / Low
