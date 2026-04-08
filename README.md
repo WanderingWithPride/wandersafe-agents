@@ -9,7 +9,7 @@
 This repository contains the open-source monitoring agent pipeline that powers WanderSafe.
 
 - **Live platform**: https://wanderingwithpride.com
-- **152 destination pages**: https://wanderingwithpride.com/wandersafe/
+- **150 destination pages**: https://wanderingwithpride.com/wandersafe/
 - **Methodology**: https://wanderingwithpride.com/wandersafe/methodology.html
 
 ---
@@ -49,7 +49,7 @@ All agents output structured alerts. **Nothing publishes without human review an
 
 ## Live Destinations
 
-**152 destination pages** are live at [wanderingwithpride.com/wandersafe/](https://wanderingwithpride.com/wandersafe/), covering destinations across 6 continents. URL format: `wanderingwithpride.com/wandersafe/[city-country].html`
+**150 destination pages** are live at [wanderingwithpride.com/wandersafe/](https://wanderingwithpride.com/wandersafe/), covering destinations across 6 continents. URL format: `wanderingwithpride.com/wandersafe/[city-country].html`
 
 **Pipeline status (April 2026):**
 - wandersafe-legal-monitor: **Active** — polling Equaldex API + US State Department weekly
