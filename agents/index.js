@@ -12,6 +12,7 @@ import eventMonitor from './event-monitor.js';
 import socialIntelligence from './social-intelligence.js';
 import environmentMonitor from './environment-monitor.js';
 import accessibilityMonitor from './accessibility-monitor.js';
+import crimeMonitor from './crime-monitor.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -45,6 +46,9 @@ export default {
     if (path.startsWith('/accessibility')) {
       return accessibilityMonitor.fetch(request, env, ctx);
     }
+    if (path.startsWith('/crime')) {
+      return crimeMonitor.fetch(request, env, ctx);
+    }
 
     // Root / health: combined health check
     if (path === '/' || path === '/health') {
@@ -56,6 +60,7 @@ export default {
         { name: 'social-intelligence', module: socialIntelligence },
         { name: 'environment-monitor', module: environmentMonitor },
         { name: 'accessibility-monitor', module: accessibilityMonitor },
+        { name: 'crime-monitor', module: crimeMonitor },
       ];
 
       const statuses = {};
@@ -107,6 +112,11 @@ export default {
     // Accessibility Monitor: Weekly Wed 06:00 UTC
     if (cron === '0 6 * * 3') {
       return accessibilityMonitor.scheduled(event, env, ctx);
+    }
+
+    // Crime Monitor: Monthly 1st 06:00 UTC
+    if (cron === '0 6 1 * *') {
+      return crimeMonitor.scheduled(event, env, ctx);
     }
 
     console.warn(`wandersafe-agents: no handler for cron expression "${cron}"`);
