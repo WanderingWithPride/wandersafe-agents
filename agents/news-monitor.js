@@ -15,6 +15,7 @@
  *   - The Advocate (advocate.com/feed) — US and international LGBTQ+ news
  *   - Human Rights Watch (hrw.org/rss/lgbtq) — authoritative human rights docs
  *   - Openly / Thomson Reuters (openlynews.com/feed) — LGBTQ+ wire service
+ *   - Google News RSS — supplemental LGBTQ+ safety news via search queries
  *
  * Schedule: Daily 06:00 UTC (cron: 0 6 * * *)
  *
@@ -336,12 +337,103 @@ async function runBraveSearch(db, braveApiKey) {
   return alertCount;
 }
 
+// ---------------------------------------------------------------------------
+// Google News RSS — supplemental LGBTQ+ safety news search
+// ---------------------------------------------------------------------------
+
+/**
+ * Google News search queries for LGBTQ+ travel safety.
+ * These are intentionally broad to catch relevant stories that
+ * the dedicated LGBTQ+ RSS feeds might miss.
+ */
+const GOOGLE_NEWS_QUERIES = [
+  'LGBTQ+ travel safety',
+  'gay rights crackdown',
+  'transgender law travel',
+  'anti-gay legislation',
+  'LGBTQ+ arrest',
+];
+
+/**
+ * Run Google News RSS search for LGBTQ+ travel safety stories.
+ * Uses Google News search RSS which returns ~100 results per query.
+ * Deduplicates against existing alerts by article URL hash.
+ *
+ * @param {D1Database} db
+ * @returns {Promise<number>} number of alerts created
+ */
+async function runGoogleNewsSearch(db) {
+  let alertCount = 0;
+
+  for (const query of GOOGLE_NEWS_QUERIES) {
+    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en&gl=US&ceid=US:en`;
+
+    let xml;
+    try {
+      const response = await fetch(rssUrl, {
+        headers: { 'User-Agent': 'WanderSafe/1.0 (+https://wanderingwithpride.com)' },
+      });
+      if (!response.ok) {
+        console.error(`news-monitor: Google News RSS "${query}" HTTP ${response.status}`);
+        continue;
+      }
+      xml = await response.text();
+    } catch (e) {
+      console.error(`news-monitor: Google News RSS "${query}" fetch failed:`, e.message);
+      continue;
+    }
+
+    const items = parseRSSItems(xml);
+
+    // Cap at 20 items per query to avoid noise (Perplexity recommendation)
+    for (const item of items.slice(0, 20)) {
+      const combinedText = `${item.title} ${item.description}`;
+      const matchedCountries = matchDestinations(combinedText);
+
+      if (matchedCountries.length === 0) continue;
+
+      const dedupHash = await sha256(item.link || item.title);
+      if (await isDuplicate(db, dedupHash)) continue;
+
+      const severity = classifySeverity(combinedText);
+
+      for (const countryCode of matchedCountries) {
+        const destinationId = await getDestinationId(db, countryCode);
+        if (!destinationId) continue;
+
+        try {
+          await insertAlert(db, {
+            destinationId,
+            severity,
+            sourceUrl: item.link,
+            sourceName: 'Google News',
+            summary: `${item.title}. Source: Google News. Requires human review before publishing.`,
+            rawPayload: {
+              dedup_hash: dedupHash,
+              title: item.title,
+              description: (item.description ?? '').substring(0, 500),
+              pub_date: item.pubDate,
+              search_query: query,
+            },
+          });
+          alertCount++;
+        } catch (e) {
+          console.error(`news-monitor: failed to insert Google News alert for ${countryCode}:`, e.message);
+        }
+      }
+    }
+  }
+
+  return alertCount;
+}
+
 export default {
   async scheduled(event, env, ctx) {
     console.log('news-monitor: scheduled run started', new Date().toISOString());
 
     let rssAlerts = 0;
     let braveAlerts = 0;
+    let googleNewsAlerts = 0;
 
     // Process all RSS feeds
     for (const feed of RSS_FEEDS) {
@@ -362,13 +454,25 @@ export default {
       console.error('news-monitor: Brave Search pass failed:', e.message);
     }
 
-    const total = rssAlerts + braveAlerts;
+    // Run Google News RSS search
+    try {
+      googleNewsAlerts = await runGoogleNewsSearch(env.DB);
+      console.log(`news-monitor: Google News — ${googleNewsAlerts} alerts`);
+    } catch (e) {
+      console.error('news-monitor: Google News pass failed:', e.message);
+    }
+
+    const total = rssAlerts + braveAlerts + googleNewsAlerts;
 
     try {
       await env.DB.prepare(`
         INSERT INTO agent_runs (agent_type, finished_at, status, alerts_created, metadata)
         VALUES ('news-monitor', CURRENT_TIMESTAMP, 'success', ?, ?)
-      `).bind(total, JSON.stringify({ rss_alerts: rssAlerts, brave_alerts: braveAlerts })).run();
+      `).bind(total, JSON.stringify({
+        rss_alerts: rssAlerts,
+        brave_alerts: braveAlerts,
+        google_news_alerts: googleNewsAlerts,
+      })).run();
     } catch (e) {
       console.error('news-monitor: failed to log agent run:', e.message);
     }
@@ -380,7 +484,7 @@ export default {
     return new Response(JSON.stringify({
       agent: 'news-monitor',
       status: 'ok',
-      sources: RSS_FEEDS.map(f => f.name).concat(['Brave Search']),
+      sources: RSS_FEEDS.map(f => f.name).concat(['Brave Search', 'Google News RSS']),
       tracked_destinations: Object.keys(DESTINATION_KEYWORDS).length,
       timestamp: new Date().toISOString(),
     }), { headers: { 'Content-Type': 'application/json' } });

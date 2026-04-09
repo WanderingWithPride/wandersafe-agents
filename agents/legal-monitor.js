@@ -19,6 +19,8 @@
  *        Level 4: Do Not Travel)
  *   - LegiScan API - U.S. state LGBTQ+-targeted bill tracking (bathroom
  *       bills, drag bans, trans healthcare restrictions, "Don't Say Gay")
+ *   - FCDO UK Travel Advice (gov.uk Content API) - UK foreign travel advice
+ *       with LGBTQ+-specific safety sections per country
  *
  * Alert Structure (D1 safety_alerts table):
  *   destination_id, severity, agent_type='legal', source_url, source_name,
@@ -87,6 +89,116 @@ const COUNTRY_NAMES = {
   ES: 'Spain', MX: 'Mexico', PL: 'Poland', RW: 'Rwanda', IT: 'Italy',
   DE: 'Germany', NL: 'Netherlands', TH: 'Thailand', AR: 'Argentina', US: 'United States',
 };
+
+// ---------------------------------------------------------------------------
+// FCDO UK Travel Advice — GOV.UK Content API
+// ---------------------------------------------------------------------------
+
+/** Map ISO codes to FCDO country slugs (gov.uk URL format). */
+const FCDO_COUNTRY_SLUGS = {
+  ES: 'spain', MX: 'mexico', PL: 'poland', RW: 'rwanda', IT: 'italy',
+  DE: 'germany', NL: 'netherlands', TH: 'thailand', AR: 'argentina',
+};
+// Note: US is excluded — FCDO does not publish advice for the US in the same format.
+
+/**
+ * Fetch FCDO UK travel advice for one country.
+ * Returns the full content item from GOV.UK Content API.
+ * @param {string} slug - FCDO country slug (e.g., 'spain')
+ * @returns {Promise<object>} GOV.UK content item
+ */
+async function fetchFCDOAdvice(slug) {
+  const url = `https://www.gov.uk/api/content/foreign-travel-advice/${slug}`;
+  const response = await fetch(url, {
+    headers: { 'User-Agent': 'WanderSafe/1.0 (+https://wanderingwithpride.com)' },
+  });
+  if (!response.ok) {
+    throw new Error(`FCDO ${slug}: HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Extract the LGBTQ+-relevant section from FCDO advice if present.
+ * FCDO advice pages contain sections like "Local laws and customs" or
+ * "LGBT" / "LGBT+" which often mention same-sex relationships.
+ * @param {object} data - GOV.UK content item
+ * @returns {string|null} relevant text excerpt or null
+ */
+function extractFCDOLGBTSection(data) {
+  const parts = data?.details?.parts ?? [];
+  for (const part of parts) {
+    const body = (part.body ?? '').toLowerCase();
+    if (body.includes('lgbt') || body.includes('same-sex') || body.includes('homosexual')) {
+      // Strip HTML, truncate to useful length
+      return (part.body ?? '').replace(/<[^>]+>/g, '').substring(0, 1000);
+    }
+  }
+  return null;
+}
+
+/**
+ * Get the last FCDO advice hash for a destination from D1.
+ * Used for change detection — only alert when content changes.
+ */
+async function getLastFCDOHash(db, destinationId) {
+  const row = await db.prepare(`
+    SELECT raw_payload FROM safety_alerts
+    WHERE destination_id = ? AND agent_type = 'legal' AND source_name = 'FCDO UK'
+    ORDER BY created_at DESC LIMIT 1
+  `).bind(destinationId).first();
+  if (!row?.raw_payload) return null;
+  try {
+    return JSON.parse(row.raw_payload)?.content_hash ?? null;
+  } catch { return null; }
+}
+
+/**
+ * Run the FCDO UK Travel Advice polling pass. Returns alert count.
+ * Only creates alerts when LGBTQ+-relevant content changes.
+ */
+async function runFCDOPass(db) {
+  let alertCount = 0;
+
+  for (const [countryCode, slug] of Object.entries(FCDO_COUNTRY_SLUGS)) {
+    let data;
+    try {
+      data = await fetchFCDOAdvice(slug);
+    } catch (e) {
+      console.error(`legal-monitor: FCDO failed for ${slug}:`, e.message);
+      continue;
+    }
+
+    const lgbtSection = extractFCDOLGBTSection(data);
+    if (!lgbtSection) continue; // No LGBTQ+ content in this country's advice
+
+    const destinationId = await getDestinationId(db, countryCode);
+    if (!destinationId) continue;
+
+    // Hash the LGBTQ+ section for change detection
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(lgbtSection));
+    const contentHash = [...new Uint8Array(hashBuffer)].map(b => b.toString(16).padStart(2, '0')).join('');
+
+    const lastHash = await getLastFCDOHash(db, destinationId);
+    if (lastHash === contentHash) continue; // No change
+
+    await insertAlert(db, {
+      destinationId,
+      severity: 'medium',
+      sourceUrl: `https://www.gov.uk/foreign-travel-advice/${slug}`,
+      sourceName: 'FCDO UK',
+      summary: `UK FCDO travel advice updated for ${COUNTRY_NAMES[countryCode] ?? countryCode} — LGBTQ+ section changed. Requires human review.`,
+      previousValue: lastHash ? 'previous hash on file' : null,
+      newValue: lgbtSection.substring(0, 200),
+      rawPayload: { content_hash: contentHash, lgbt_excerpt: lgbtSection },
+    });
+    alertCount++;
+    console.log(`legal-monitor: FCDO alert — ${slug} LGBTQ+ section updated`);
+  }
+
+  return alertCount;
+}
 
 /**
  * Fetch Equaldex legal status for one country.
@@ -564,7 +676,8 @@ export default {
     const equaldexAlerts  = await runEqualdexPass(env.DB, env.EQUALDEX_API_KEY);
     const stateDeptAlerts = await runStateDeptPass(env.DB);
     const legiscanAlerts  = await runLegiScanPass(env.DB, env.LEGISCAN_API_KEY);
-    const total = equaldexAlerts + stateDeptAlerts + legiscanAlerts;
+    const fcdoAlerts      = await runFCDOPass(env.DB);
+    const total = equaldexAlerts + stateDeptAlerts + legiscanAlerts + fcdoAlerts;
 
     await env.DB.prepare(`
       INSERT INTO agent_runs (agent_type, finished_at, status, alerts_created, metadata)
@@ -573,6 +686,7 @@ export default {
       equaldex_alerts: equaldexAlerts,
       state_dept_alerts: stateDeptAlerts,
       legiscan_alerts: legiscanAlerts,
+      fcdo_alerts: fcdoAlerts,
     })).run();
 
     console.log(`legal-monitor: completed — ${total} alerts generated`);
@@ -582,7 +696,7 @@ export default {
     return new Response(JSON.stringify({
       agent: 'legal-monitor',
       status: 'ok',
-      sources: ['equaldex', 'state-dept-rss', 'legiscan'],
+      sources: ['equaldex', 'state-dept-rss', 'legiscan', 'fcdo-uk'],
       tracked_countries: TRACKED_COUNTRY_CODES.length,
       timestamp: new Date().toISOString(),
     }), { headers: { 'Content-Type': 'application/json' } });
